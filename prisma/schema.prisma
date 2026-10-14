@@ -1,0 +1,190 @@
+// // This is your Prisma schema file,
+// // learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// // Get a free hosted Postgres database in seconds: `npx create-db`
+
+// generator client {
+//   provider = "prisma-client"
+//   output   = "../src/generated/prisma"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+// }
+
+// // penyediaan book didalamnnya ada enum category dan auhtor
+// model Book {
+//   isbn        String     @id @db.VarChar(25)
+//   tittle      String     @db.VarChar(100)
+//   description String     @db.Text
+//   category    Categories
+//   authorId    String
+//   authors     Author     @relation(fields: [authorId], references: [id])
+
+//   bookBranch BookBranch[]
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("book")
+// }
+
+// enum Categories {
+//   POLITIC
+//   ROMANCE
+//   FICTION
+//   COMEDY
+//   HORROR
+//   COMIC
+// }
+
+// model Author {
+//   id    String @id @default(uuid())
+//   name  String @db.VarChar(125)
+//   books Book[]
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("author")
+// }
+
+// // staff untuk pencatatan shift & attendence
+
+// model Staff {
+//   id          String @id @default(uuid())
+//   name        String @db.VarChar(50)
+//   email       String @unique @db.VarChar(100)
+//   phoneNumber String @db.VarChar(15)
+
+//   branchId String
+//   branch   Branch @relation(fields: [branchId], references: [id])
+
+//   shift       Shift[]
+//   attendences Attendence[]
+//   borrowings  Borrowing[]
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("staff")
+// }
+
+// model Shift {
+//   id String @id @default(uuid())
+
+//   staffId String
+//   staffs  Staff  @relation(fields: [staffId], references: [id])
+
+//   workDate  DateTime
+//   startTime DateTime
+//   endTime   DateTime
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("shifts")
+// }
+
+// model Attendence {
+//   id String @id @default(uuid())
+
+//   staffId String
+//   staffs  Staff  @relation(fields: [staffId], references: [id])
+
+//   clockIn       DateTime
+//   clockOut      DateTime?
+//   lateCheckin   Int       @default(0)
+//   earlyCheckout Int?
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("attendence")
+// }
+
+// // branching book
+
+// model Branch {
+//   id         String       @id @default(uuid())
+//   name       String       @db.VarChar(150)
+//   location   String       @db.VarChar(200)
+//   staffs     Staff[]
+//   bookBranch BookBranch[]
+//   borrowings Borrowing[]
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("branch")
+// }
+
+// model BookBranch {
+//   id String @id @default(cuid())
+
+//   bookId String
+//   books  Book   @relation(fields: [bookId], references: [isbn])
+
+//   branchId String
+//   branchs  Branch @relation(fields: [branchId], references: [id])
+
+//   quantity Int @db.Integer
+
+//   availableQuantity Int @db.Integer
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("bookbranch")
+// }
+
+// // member borrowing
+// model Member {
+//   id             String @id @default(uuid())
+//   email          String @unique @db.VarChar(100)
+//   phoneNumber    String @db.VarChar(15)
+//   identityNumber Int
+//   address        String @db.Text
+
+//   borrowing Borrowing[]
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("member")
+// }
+
+// enum Status {
+//   BORROWED
+//   DUE
+//   RETURNED
+// }
+
+// model Borrowing {
+//   id         String    @id @default(uuid())
+//   borrowDate DateTime
+//   dueDate    DateTime?
+//   returnDate DateTime?
+//   status     Status
+
+//   memberId String
+//   members  Member @relation(fields: [memberId], references: [id])
+//   staffId  String
+//   staffs   Staff  @relation(fields: [staffId], references: [id])
+//   brancId  String
+//   brancs   Branch @relation(fields: [brancId], references: [id])
+
+//   createdAt DateTime  @default(now())
+//   updatedAt DateTime  @updatedAt
+//   deletedAt DateTime?
+
+//   @@map("borrowing")
+// }
