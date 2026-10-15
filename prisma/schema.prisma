@@ -136,7 +136,7 @@ enum TypePrice {
 
 model Events {
   id String @id @default(uuid())
-
+  slug String @unique @db.VarChar(250)
   organizerId String
   organizer OrganizerProfiles @relation(fields: [organizerId], references: [id])
   

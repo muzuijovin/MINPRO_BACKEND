@@ -6,31 +6,31 @@
 // }
 
 // export class BooksServices {
-//   static async create({
-//     tittle,
-//     isbn,
-//     description,
-//     category,
-//     authorId,
-//   }: BookUncheckedCreateInput) {
-//     // validasi kalau isbn udh ada di db ke throw catch
-//     const findBookByISBN = await prisma.book.findFirst({
-//       where: { isbn },
-//     });
+  // static async create({
+  //   tittle,
+  //   isbn,
+  //   description,
+  //   category,
+  //   authorId,
+  // }: BookUncheckedCreateInput) {
+  //   // validasi kalau isbn udh ada di db ke throw catch
+  //   const findBookByISBN = await prisma.book.findFirst({
+  //     where: { isbn },
+  //   });
 
-//     // buat message menggunakan if
-//     if (findBookByISBN) throw new Error(`ISBN = ${isbn} is already exists`);
+  //   // buat message menggunakan if
+  //   if (findBookByISBN) throw new Error(`ISBN = ${isbn} is already exists`);
 
-//     return await prisma.book.create({
-//       data: {
-//         tittle,
-//         isbn,
-//         description,
-//         category,
-//         authorId,
-//       },
-//     });
-//   }
+  //   return await prisma.book.create({
+  //     data: {
+  //       tittle,
+  //       isbn,
+  //       description,
+  //       category,
+  //       authorId,
+  //     },
+  //   });
+  // }
 
 //   static async get(page: number, limit: number) {
 //     const offset = (page - 1) * limit;

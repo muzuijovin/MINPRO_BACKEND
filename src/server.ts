@@ -1,5 +1,5 @@
+import "dotenv/config";
 import express from "express";
-import { BooksRoute } from "./features/books/books.route";
 import cors from "cors";
 import { corsOptions } from "./config/cors.config";
 import { errorMiddleware } from "./middleware/error.middleware";
@@ -17,9 +17,8 @@ app.use(express.json());
 //menangani error middleware
 app.use(errorMiddleware);
 
-app.use(`${API_PREFIX}/books`, BooksRoute);
-
-if (process.env.NODE_ENV === "DEVELOPMENT") {
+//kalau udh pake supabase ya app listen hanya ketika development aja.. kalau ga ada ya ga diwajibin..
+if (process.env.NODE_ENV === "development") {
   app.listen(PORT, () => {
     console.log(`Application Running On Port ${PORT}`);
   });
