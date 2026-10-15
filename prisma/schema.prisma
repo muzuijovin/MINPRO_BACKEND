@@ -12,200 +12,424 @@ datasource db {
   provider = "postgresql"
 }
 
+// =====================================================
+// 1. USERS & PROFILES
+// =====================================================
+
 enum UserRole {
   CUSTOMER
   EO
 }
 
-model users{
+model Users{
   id String @id @default(uuid())
-  username String @db.VarChar(100)
+  username String @unique
   email String @unique
-  password String @db.VarChar(100)
+  passwordHash String
   role UserRole
 
   referralCode String @unique
+  referredByUserId String?
   totalPoints Int @default(0)
+
+  // Orang yang mengundang user ini (Atasan/Upline)
+  referredByUser Users? @relation("UserReferral", fields: [referredByUserId], references: [id])
+  
+  // Daftar orang-orang yang diundang oleh user ini (Bawahan/Downline)
+  invitedUsers Users[] @relation("UserReferral")
+
+   // Tambahan dari tabel PointLot sebelumnya (agar relasi dua arahnya sinkron)
+  pointLots         PointLots[] @relation("UserPoints")
+  referredPointLots PointLots[] @relation("ReferredUserPoints")
+
+  // relasi
+  costumerProfiles CustomerProfiles[]
+  organizerProfiles OrganizerProfiles[]
+  coupons Coupons[]
+  transactions Transactions[]
+  paymentProofs PaymentProofs[]
+  reviews Reviews[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  @@index([role])
+  @@map("users")
+}
+
+model CustomerProfiles {
+  id String @id @default(uuid())
+  
+  userId String
+  users Users @relation(fields: [userId], references: [id])
+ 
+  fullname String @db.VarChar(100)
+  phoneNumber Int
+  avatarUrl String @db.VarChar(500)
+  dateOfBirth DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("costumerProfiles")
+}
+
+model OrganizerProfiles {
+  id String @id @default(uuid())
+
+  userId String
+  users Users @relation(fields: [userId], references: [id])
+
+  organizationName String @db.VarChar(150)
+
+  // relasi
+  events Events[]
+  organizerBankAccounts OrganizerBankAccounts[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("organizer-profiles")
 }
 
 
-// // penyediaan book didalamnnya ada enum category dan auhtor
-// model Book {
-//   isbn        String     @id @db.VarChar(25)
-//   tittle      String     @db.VarChar(100)
-//   description String     @db.Text
-//   category    Categories
-//   authorId    String
-//   authors     Author     @relation(fields: [authorId], references: [id])
+// =====================================================
+// 2. CATEGORIES & EVENTS
+// =====================================================
 
-//   bookBranch BookBranch[]
+model Categories {
+  id String @id @default(uuid())
+  parentId String?
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+  name String @db.VarChar(100)
+  slug String @db.VarChar(100) @unique
 
-//   @@map("book")
-// }
+  // relasi
+  events Events[]
 
-// enum Categories {
-//   POLITIC
-//   ROMANCE
-//   FICTION
-//   COMEDY
-//   HORROR
-//   COMIC
-// }
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-// model Author {
-//   id    String @id @default(uuid())
-//   name  String @db.VarChar(125)
-//   books Book[]
+  @@map("categories")
+}
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
 
-//   @@map("author")
-// }
+enum EventFormat {
+  SPECTATOR
+  PARTICIPANT
+}
 
-// // staff untuk pencatatan shift & attendence
+enum TypePrice {
+  FREE
+  PAID
+}
 
-// model Staff {
-//   id          String @id @default(uuid())
-//   name        String @db.VarChar(50)
-//   email       String @unique @db.VarChar(100)
-//   phoneNumber String @db.VarChar(15)
+model Events {
+  id String @id @default(uuid())
 
-//   branchId String
-//   branch   Branch @relation(fields: [branchId], references: [id])
+  organizerId String
+  organizer OrganizerProfiles @relation(fields: [organizerId], references: [id])
+  
+  categoryId String
+  categories Categories @relation(fields: [categoryId], references: [id])
 
-//   shift       Shift[]
-//   attendences Attendence[]
-//   borrowings  Borrowing[]
+  title String @db.VarChar(200)
+  description String @db.VarChar(2000)
+  location String @db.VarChar(300)
+  format EventFormat
+  typePrice TypePrice
+  price Decimal @db.Decimal(15,2)
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+  quota Int
+  startstAt DateTime?
+  EndsAt DateTime?
 
-//   @@map("staff")
-// }
+  // relasi
+  eventVoucher EventVoucher[]
+  transactions Transactions[]
+  reviews Reviews[]
 
-// model Shift {
-//   id String @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-//   staffId String
-//   staffs  Staff  @relation(fields: [staffId], references: [id])
+  
+  
+  @@index([typePrice])
+  @@index([format])
+  @@index([location])
+  @@index([organizerId])
+  @@index([categoryId])
+  @@map("events")
+}
 
-//   workDate  DateTime
-//   startTime DateTime
-//   endTime   DateTime
+// =====================================================
+// 3. EVENT VOUCHERS
+// Voucher dibuat EO untuk event miliknya, misal: 'DISKON1010'
+// =====================================================
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+enum DiscountType {
+  PERCENTAGE
+}
 
-//   @@map("shifts")
-// }
+model EventVoucher {
+  id String @id @default(uuid())
+  eventId String
+  events Events @relation(fields: [eventId],references: [id])
 
-// model Attendence {
-//   id String @id @default(uuid())
+  code String @db.VarChar(50)
+  discountPercentage Decimal @db.Decimal()
+  quota Int
+  startAt DateTime
+  endAt DateTime //menggantikan expiresAt
+  isActive Boolean 
 
-//   staffId String
-//   staffs  Staff  @relation(fields: [staffId], references: [id])
+  // relasi
+  transactions Transactions[]
 
-//   clockIn       DateTime
-//   clockOut      DateTime?
-//   lateCheckin   Int       @default(0)
-//   earlyCheckout Int?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+  @@unique([eventId, code])
+  @@map("event-voucher")
+}
 
-//   @@map("attendence")
-// }
+// =====================================================
+// 4. SYSTEM COUPONS / REWARD COUPONS
+// Kupon reward dari aplikasi berlaku untuk semua event, misal : KUPON-XYZ123
+// =====================================================
 
-// // branching book
+model Coupons {
+  id String @id @default(uuid())
+  userId String
+  users Users @relation(fields: [userId], references: [id])
 
-// model Branch {
-//   id         String       @id @default(uuid())
-//   name       String       @db.VarChar(150)
-//   location   String       @db.VarChar(200)
-//   staffs     Staff[]
-//   bookBranch BookBranch[]
-//   borrowings Borrowing[]
+  code String   @unique // Harus unik global agar tidak tertukar
+  discountPercentage Decimal
+  quota Int      // Kuota pemakaian untuk user ini (misal: 1)
+  startAt DateTime
+  endAt DateTime // Menggantikan expiresAt
+  isActive Boolean  @default(true)
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+  // relasi
+  transactions Transactions[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-//   @@map("branch")
-// }
+  @@map("coupons")
+}
 
-// model BookBranch {
-//   id String @id @default(cuid())
 
-//   bookId String
-//   books  Book   @relation(fields: [bookId], references: [isbn])
+// =====================================================
+// 5. REFERRAL POINTS
+// Setiap perolehan poin mempunyai masa berlaku sendiri
+// =====================================================
+enum PointLotStatus {
+  AVAILABLE
+  PARTIALLY_USED
+  FULLY_USED
+  EXPIRED
+}
 
-//   branchId String
-//   branchs  Branch @relation(fields: [branchId], references: [id])
+model PointLots{
+  id String @id @default(uuid())
+  userId String @map("user_id")
+  user Users  @relation("UserPoints", fields: [userId], references: [id])
+  
+  referredUserId String?  // Pakai '?' karena di gambar Anda nilainya [null]
+  referredUser Users? @relation("ReferredUserPoints", fields: [referredUserId], references: [id])
 
-//   quantity Int @db.Integer
+  pointsRemaining Int
+  status PointLotStatus @default(AVAILABLE)
 
-//   availableQuantity Int @db.Integer
+  creditedAt DateTime @default(now())
+  expiresAt DateTime
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-//   @@map("bookbranch")
-// }
+  @@index([userId, expiresAt])
+  @@map("point-lots")
+}
 
-// // member borrowing
-// model Member {
-//   id             String @id @default(uuid())
-//   email          String @unique @db.VarChar(100)
-//   phoneNumber    String @db.VarChar(15)
-//   identityNumber Int
-//   address        String @db.Text
+// =====================================================
+// 6. EO BANK ACCOUNTS FOR MANUAL TRANSFERS
+// =====================================================
 
-//   borrowing Borrowing[]
+model OrganizerBankAccounts {
+  id String @id @default(uuid())
+  organizerId String
+  organizer OrganizerProfiles @relation(fields: [organizerId], references: [id])
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+  bankName String @db.VarChar(50)
+  accountNumber Int
+  accountHolder String @db.VarChar(100)
+  isActive Boolean @default(false)
 
-//   @@map("member")
-// }
+  // relasi
+  transactions Transactions[]
 
-// enum Status {
-//   BORROWED
-//   DUE
-//   RETURNED
-// }
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-// model Borrowing {
-//   id         String    @id @default(uuid())
-//   borrowDate DateTime
-//   dueDate    DateTime?
-//   returnDate DateTime?
-//   status     Status
+  @@map("organizer-bank-accounts")
+}
 
-//   memberId String
-//   members  Member @relation(fields: [memberId], references: [id])
-//   staffId  String
-//   staffs   Staff  @relation(fields: [staffId], references: [id])
-//   brancId  String
-//   brancs   Branch @relation(fields: [brancId], references: [id])
+// =====================================================
+// 7. TRANSACTIONS & PAYMENT
+// =====================================================
 
-//   createdAt DateTime  @default(now())
-//   updatedAt DateTime  @updatedAt
-//   deletedAt DateTime?
+enum TransactionStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_CONFIRMATION
+  PAID
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
 
-//   @@map("borrowing")
-// }
+model Transactions {
+  id String @id @default(uuid())
+  customerId String
+  users Users @relation(fields: [customerId], references: [id])
+
+  bankAccountId String
+  bankEo OrganizerBankAccounts @relation(fields: [bankAccountId], references: [id])
+
+  eventId String
+  events Events @relation(fields: [eventId], references: [id])
+
+  eventVoucherId String?
+  eventVoucher EventVoucher? @relation(fields: [eventVoucherId], references: [id])
+
+  userCouponId String?
+  coupons Coupons? @relation(fields: [userCouponId], references: [id])
+
+  // --- KOLOM KUANTITAS & HARGA TIKET LANGSUNG DI SINI ---
+  quantity        Int     // Jumlah tiket yang dibeli user (misal: 3)
+  ticketPrice     Decimal @db.Decimal(15, 2) // Harga 1 tiket saat dibeli ( snapshot harga )
+  
+  transactionCode String @db.VarChar(50) @unique
+  subtotal Decimal @db.Decimal(15,2)
+  voucherDiscount Decimal @db.Decimal(15,2) @default(0)
+  couponDiscount Decimal @db.Decimal(15,2) @default(0)
+  pointUsed Int @default(0)
+  pointDiscount Decimal  @db.Decimal(15,2) @default(0)
+  finalAmount Decimal  @db.Decimal(15,2)
+
+  status TransactionStatus @default(WAITING_FOR_PAYMENT)
+
+  // Dibuat opsional (?) agar bisa bernilai null sebelum alur logistiknya tercapai
+  paymentDeadline DateTime?
+  confirmationDeadline DateTime?
+  submittedProofAt DateTime?
+  confirmedAt DateTime?
+  rejectedAt DateTime?
+  expiredAt DateTime?
+  cancelledAt DateTime?
+
+  // relasi
+  paymentProofs PaymentProofs[]
+  tickets Tickets[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([customerId])
+  @@index([eventId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+enum PaymentProofDecision {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model PaymentProofs {
+  id String @id @default(uuid())
+  transactionId String
+  transactions Transactions @relation(fields: [transactionId], references: [id])
+
+  storagePath String @db.VarChar(500) //upload foto
+  uploadedAt DateTime @default(now())
+  
+  reviewedBy String
+  eo Users @relation(fields: [reviewedBy], references: [id])
+  reviewedAt DateTime?
+
+  decision PaymentProofDecision @default(PENDING)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("payment-proofs")
+}
+
+// =====================================================
+// 8. DIGITAL TICKETS
+// ID tiket adalah UUID; tidak ada QR Code atau check-in
+// =====================================================
+
+enum TicketStatus {
+  VALID
+  VOID
+}
+
+model Tickets {
+  id String @id @default(uuid())
+  transactionsId String
+  Transactions Transactions @relation(fields: [transactionsId], references: [id])
+  status TicketStatus @default(VALID)
+  
+  issuedAt DateTime //diterbitkan pada
+
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("tickets")
+}
+
+// =====================================================
+// 9. REVIEWS & RATINGS
+// =====================================================
+
+model Reviews {
+  id String @id @default(uuid())
+  customerId String
+  users Users @relation(fields: [customerId], references: [id])
+
+  eventId String
+  events Events @relation(fields: [eventId],references: [id])
+
+  rating Int
+  comment String @db.VarChar(1000)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("reviews")
+}
+
+
+
+
