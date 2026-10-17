@@ -149,9 +149,10 @@ model Events {
   format EventFormat
   typePrice TypePrice
   price Decimal @db.Decimal(15,2)
+  coverImageUrl String? @db.Text
 
   quota Int
-  startstAt DateTime?
+  startsAt DateTime?
   EndsAt DateTime?
 
   // relasi

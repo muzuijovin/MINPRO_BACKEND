@@ -12,8 +12,8 @@ export const corsOptions: CorsOptions = {
     /*
       IF ORIGIN NOT INSIDE ALLOWED_ORIGIN
     */
-    if (!ALLOWED_ORIGINS?.includes(origin!))
-      return callback(new Error('Origin not allowed by CORS'), false);
+    // if (!ALLOWED_ORIGINS?.includes(origin!))
+    //   return callback(new Error('Origin not allowed by CORS'), false);
 
     return callback(null, true);
   },
