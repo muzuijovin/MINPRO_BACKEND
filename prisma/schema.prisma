@@ -152,7 +152,7 @@ model Events {
   coverImageUrl String? @db.Text
 
   quota Int
-  startsAt DateTime?
+  startAt DateTime?
   EndsAt DateTime?
 
   // relasi
