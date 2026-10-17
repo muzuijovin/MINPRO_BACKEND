@@ -153,7 +153,7 @@ model Events {
 
   quota Int
   startsAt DateTime?
-  EndsAt DateTime?
+  endsAt DateTime?
 
   // relasi
   eventVoucher EventVoucher[]

@@ -57,8 +57,8 @@ export class EventsService {
         price: body.price,
         coverImageUrl: `${cloudinaryUploadedUrl}`,
         quota: body.quota,
-        startstAt: body.startsAt,
-        EndsAt: body.endsAt,
+        startsAt: body.startsAt,
+        endsAt: body.endsAt,
         organizer: {
           connect: { id: body.organizerId },
         },
