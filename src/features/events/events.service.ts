@@ -14,16 +14,16 @@ export class EventsService {
     { body }: EventsCreateSchema,
     files: Express.Multer.File[],
   ) {
-    // find id, kalau misal udh ada di table, ke throw
-    const findId = await prisma.events.findUnique({
+    // find name, kalau misal udh ada di table, ke throw
+    const findCostumerByName = await prisma.events.findFirst({
       where: {
-        id: body?.id,
+        title: body?.title
       },
     });
 
-    if (findId) throw new AppError(409, `id = ${body.id} has already exists`);
+    if (findCostumerByName) throw new AppError(409, `id = ${body.id} has already exists`);
 
-    // find organizerId, kalau misal gaada , ke throw
+    // find organizerId di locals.payload, kalau misal gaada , ke throw
     const findOrganizerById = await prisma.organizerProfiles.findUnique({
       where: {
         id: body.organizerId,
@@ -32,7 +32,7 @@ export class EventsService {
 
     if (!findOrganizerById) throw new AppError(404, `organizerId not found`);
 
-    // find categoryId, kalau misal gaada , ke throw
+    // find categoryId locals.payload, kalau misal gaada , ke throw
     const findCategoryById = await prisma.categories.findUnique({
       where: {
         id: body.categoryId,
