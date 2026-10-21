@@ -34,7 +34,7 @@ export class EventsController {
 
     res.status(201).json({
       success: true,
-      message: "Book created successfully",
+      message: "events get successfully",
       data: events,
       meta: {
         page,
@@ -53,7 +53,7 @@ export class EventsController {
 
     res.status(201).json({
       success: true,
-      message: "events created successfully",
+      message: "events deleted successfully",
       data: deletedEvents,
     });
   }
@@ -67,7 +67,7 @@ export class EventsController {
 
     res.status(201).json({
       success: true,
-      message: "events created successfully",
+      message: "events updated successfully",
       data: updateEvents,
     });
   }
