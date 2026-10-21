@@ -27,7 +27,7 @@ export class CategoriesController {
     const { page, totalPage, limit, categories, totalCategories } =
       await CategoriesService.getCategory({ query });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "category get successfully",
       data: categories,
@@ -35,9 +35,18 @@ export class CategoriesController {
         page,
         totalPage,
         limit,
-        categories,
         totalCategories,
       },
+    });
+  }
+
+  static async getCategoryTree(req: Request, res: Response) {
+    const { tree } = await CategoriesService.getCategoryTree();
+
+    res.status(200).json({
+      success: true,
+      message: "category tree get successfully",
+      data: tree,
     });
   }
 
@@ -50,7 +59,7 @@ export class CategoriesController {
       params,
     });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "category deleted successfully",
       data: deletedCategory,
@@ -58,15 +67,15 @@ export class CategoriesController {
   }
 
   static async updateCategory(req: Request, res: Response) {
-    const { params } = validate(categoriesupdatedSchema, {
+    // params & body divalidasi sekaligus karena schema nya mewajibkan keduanya
+    const { params, body } = validate(categoriesupdatedSchema, {
       params: req?.params,
+      body: req?.body,
     });
-
-    const { body } = validate(categoriesupdatedSchema, {body: req?.body})
 
     const {updatedCategory} = await CategoriesService.updateCategory({params, body})
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "category updated successfully",
       data: updatedCategory,
