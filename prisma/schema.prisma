@@ -152,13 +152,8 @@ model Events {
   coverImageUrl String? @db.Text
 
   quota Int
-<<<<<<< HEAD
-  startAt DateTime?
-  EndsAt DateTime?
-=======
   startsAt DateTime?
   endsAt DateTime?
->>>>>>> e99d3a556f7ede91cf0202831be4ca36aeb24fc7
 
   // relasi
   eventVoucher EventVoucher[]

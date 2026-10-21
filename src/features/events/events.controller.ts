@@ -3,6 +3,7 @@ import { validate } from "../../validatiors/validate";
 import {
   eventsCreateSchema,
   eventsDeletedSchema,
+  eventsGetDetailSchema,
   eventsGetSchema,
   eventUpdatedSchema,
 } from "../../validatiors/events.validators";
@@ -32,7 +33,7 @@ export class EventsController {
     const { page, totalPage, limit, events, totalEvents } =
       await EventsService.getEvent({ query });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "events get successfully",
       data: events,
@@ -40,9 +41,30 @@ export class EventsController {
         page,
         totalPage,
         limit,
-        events,
         totalEvents,
       },
+    });
+  }
+
+  static async getEventDetail(req: Request, res: Response) {
+    const { params } = validate(eventsGetDetailSchema, { params: req?.params });
+
+    const { event } = await EventsService.getEventDetail({ params });
+
+    res.status(200).json({
+      success: true,
+      message: "event detail get successfully",
+      data: event,
+    });
+  }
+
+  static async getEventLocations(req: Request, res: Response) {
+    const { locations } = await EventsService.getEventLocations();
+
+    res.status(200).json({
+      success: true,
+      message: "event locations get successfully",
+      data: locations,
     });
   }
 
@@ -51,7 +73,7 @@ export class EventsController {
 
     const { deletedEvents } = await EventsService.deleteEvent({ params });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "events deleted successfully",
       data: deletedEvents,
@@ -59,13 +81,15 @@ export class EventsController {
   }
 
   static async updatedEvents(req: Request, res: Response) {
-    const { params } = validate(eventUpdatedSchema, { query: req?.params });
-
-    const { body } = validate(eventUpdatedSchema, { body: req?.body });
+    // params & body divalidasi sekaligus karena schema nya mewajibkan keduanya
+    const { params, body } = validate(eventUpdatedSchema, {
+      params: req?.params,
+      body: req?.body,
+    });
 
     const {updateEvents} = await EventsService.updatedEvents({ params, body });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "events updated successfully",
       data: updateEvents,

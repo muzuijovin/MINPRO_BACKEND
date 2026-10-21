@@ -17,4 +17,6 @@ export const corsOptions: CorsOptions = {
 
     return callback(null, true);
   },
+  // wajib true karena FE pakai axios withCredentials: true, kalau tidak browser memblokir response nya
+  credentials: true,
 };
