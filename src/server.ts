@@ -4,6 +4,7 @@ import cors from "cors";
 import { corsOptions } from "./config/cors.config";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { EventsRoute } from "./features/events/events.route";
+import { CategoriesRoute } from "./features/categories/categories.route";
 
 const PORT: number = parseInt(process.env.PORT!);
 const API_PREFIX: string = process.env.API_PREFIX!;
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use(errorMiddleware);
 
 app.use(`${API_PREFIX}/events`, EventsRoute);
+app.use(`${API_PREFIX}/categories`, CategoriesRoute)
 
 //kalau udh pake supabase ya app listen hanya ketika development aja.. kalau ga ada ya ga diwajibin..
 if (process.env.NODE_ENV === "development") {
