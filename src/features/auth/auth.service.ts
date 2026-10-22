@@ -123,24 +123,8 @@ export class AuthServices {
       return newUser;
     });
 
-    return user;
-  }
+    const { id, referredByUserId, ...userResponse } = user;
 
-  // TAMBAHAN READ: mengambil semua data user
-  static async getUsers() {
-    const users = await prisma.users.findMany({
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        referralCode: true,
-        referredByUserId: true,
-        totalPoints: true,
-        createdAt: true,
-      },
-    });
-
-    return users;
+    return userResponse;
   }
 }
