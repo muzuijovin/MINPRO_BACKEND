@@ -2,6 +2,7 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../errors/app.error";
+import { TokenExpiredError } from "jsonwebtoken";
 
 export const errorMiddleware = (
   error: unknown,
@@ -33,6 +34,14 @@ export const errorMiddleware = (
     });
   }
 
+  if (error instanceof TokenExpiredError) {
+    return res.status(401).json({
+      success: false,
+      message: 'Access token has expired',
+      data: {},
+    });
+  }
+  
   // INTERNAL SERVER ERROR
   return res.status(500).json({
     success: false,
