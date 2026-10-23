@@ -1,5 +1,5 @@
 import { CorsOptions } from "cors";
-
+import "dotenv/config";
 
 // cors untuk menyelaraskan port yang berbeda antara fe dan be
 export const corsOptions: CorsOptions = {
