@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { uploadMiddleware } from "../../middleware/apload.middleware";
 import { EventsController } from "./events.controller";
+import { uploadMiddleware } from "../../middleware/upload.middleware";
 
 export const EventsRoute = Router();
 

@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { validate } from "../../validatiors/validate";
 import {
   categoriesCreateSchema,
   categoriesDeletedSchema,
@@ -7,6 +6,7 @@ import {
   categoriesupdatedSchema,
 } from "../../validatiors/categories.validators";
 import { CategoriesService } from "./categories.service";
+import { validate } from "../../validators/validate";
 
 export class CategoriesController {
   static async createCategory(req: Request, res: Response) {

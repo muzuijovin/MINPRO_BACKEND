@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { validate } from "../../validatiors/validate";
 import {
   eventsCreateSchema,
   eventsDeletedSchema,
@@ -8,6 +7,7 @@ import {
   eventUpdatedSchema,
 } from "../../validatiors/events.validators";
 import { EventsService } from "./events.service";
+import { validate } from "../../validators/validate";
 
 export class EventsController {
   static async createEvent(req: Request, res: Response) {
