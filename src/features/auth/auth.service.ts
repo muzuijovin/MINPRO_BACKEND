@@ -1,8 +1,11 @@
 import { randomBytes } from 'node:crypto';
-import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/prisma-cllient.config';
 import { AppError } from '../../errors/app.error';
 import { RegisterUserInput } from '../../validators/users.validators';
+import type { SignOptions } from 'jsonwebtoken';
+import type { LoginUserInput } from '../../validators/users.validators';
+import { Jwt } from '../../lib/jwt.lib';
+import { Bcrypt } from '../../lib/bcrypt.lib';
 
 export class AuthServices {
   static async register({ body }: { body: RegisterUserInput }) {
@@ -48,7 +51,7 @@ export class AuthServices {
     }
 
     // 4. Hash the password
-    const passwordHash = await bcrypt.hash(body.password, 10);
+    const passwordHash = await Bcrypt.hashPassword(body.password);
 
     // 5. Generate a unique referral code for the new user
     let referralCode = '';
@@ -126,5 +129,92 @@ export class AuthServices {
     const { id, referredByUserId, ...userResponse } = user;
 
     return userResponse;
+  }
+
+  // // TAMBAHAN READ: mengambil semua data user
+  // static async getUsers() {
+  //   const users = await prisma.users.findMany({
+  //     select: {
+  //       id: true,
+  //       username: true,
+  //       email: true,
+  //       role: true,
+  //       referralCode: true,
+  //       referredByUserId: true,
+  //       totalPoints: true,
+  //       createdAt: true,
+  //     },
+  //   });
+
+  //   return users;
+  // }
+
+  // LOGIN: login menggunakan email atau username
+  static async login({ body }: { body: LoginUserInput }) {
+    const user = await prisma.users.findFirst({
+      where: {
+        OR: [{ email: body.identifier }, { username: body.identifier }],
+      },
+    });
+
+    if (!user) {
+      throw new AppError(401, 'Invalid email/username or password');
+    }
+
+    const isPasswordValid = await Bcrypt.comparePassword(
+      body.password,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      throw new AppError(401, 'Invalid email/username or password');
+    }
+
+    const secretKey = process.env.JWT_SECRET_KEY;
+
+    if (!secretKey) {
+      throw new AppError(500, 'JWT secret key is not configured');
+    }
+
+    const expiresIn: SignOptions['expiresIn'] = '1d';
+
+    const token = await Jwt.generate(
+      {
+        id: user.id,
+        role: user.role,
+      },
+      secretKey,
+      { expiresIn },
+    );
+
+    const { id, passwordHash, referredByUserId, ...userResponse } = user;
+
+    return {
+      token,
+      user: userResponse,
+    };
+  }
+
+  // ME: mengambil data user yang sedang login
+  static async me(id: string) {
+    const user = await prisma.users.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        username: true,
+        email: true,
+        role: true,
+        referralCode: true,
+        totalPoints: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'User not found');
+    }
+
+    return user;
   }
 }
