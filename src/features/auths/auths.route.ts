@@ -18,3 +18,29 @@ AuthsRoute.post(
 AuthsRoute.post('/login', AuthController.login);
 
 AuthsRoute.get('/me', authenticate, AuthController.me);
+
+// AuthsRoute.get(
+//   '/test-customer',
+//   authenticate,
+//   authorize(['CUSTOMER']),
+//   (req, res) => {
+//     res.status(200).json({
+//       success: true,
+//       message: 'Customer access granted',
+//       data: {},
+//     });
+//   },
+// );
+
+// AuthsRoute.get(
+//   '/test-eo',
+//   authenticate,
+//   authorize(['EO']),
+//   (req, res) => {
+//     res.status(200).json({
+//       success: true,
+//       message: 'EO access granted',
+//       data: {},
+//     });
+//   },
+// );

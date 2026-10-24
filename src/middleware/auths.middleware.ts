@@ -22,7 +22,7 @@ export const authenticate = async (
 export const authorize = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const { payload } = res.locals;
-    
+
     if (!allowedRoles.includes(payload?.role))
       throw new AppError(401, 'Unauthorize user role');
 
