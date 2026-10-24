@@ -55,6 +55,19 @@ model Users {
   @@map("users")
 }
 
+model EmailVerifications {
+  id        String   @id @default(uuid())
+  email     String   @unique @db.VarChar(255)
+  otpHash   String   @db.VarChar(255)
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email-verifications")
+}
+
 model CustomerProfiles {
   id     String @id @default(uuid())
   userId String @unique
@@ -85,7 +98,6 @@ model OrganizerProfiles {
   phoneNumber      String  @db.VarChar(20)
   businessAddress  String  @db.VarChar(500)
   businessEmail    String? @db.VarChar(255)
-
   events                Events[]
   organizerBankAccounts OrganizerBankAccounts[]
 

@@ -5,6 +5,8 @@ import { corsOptions } from "./config/cors.config";
 import { errorMiddleware } from "./middleware/error.middleware";
 // glen
 import authRoute from "./features/auth/auth.route";
+import { AuthsRoute } from "./features/auths/auths.route";
+import cookieParser from 'cookie-parser';
 
 //
 // jovin
@@ -22,9 +24,12 @@ app.use(cors(corsOptions));
 
 // Parse JSON request body
 app.use(express.json());
-// glen
+
+app.use(cookieParser());
+
 // Authentication routes
-app.use(`${API_PREFIX}/auth`, authRoute);
+app.use(`${API_PREFIX}/auth`, AuthsRoute);
+
 
 //
 // jovin
