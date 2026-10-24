@@ -76,7 +76,7 @@ static async registerForCustomer({ body }: RegisterUserInput) {
       data: {
         ...userData,
         role: 'CUSTOMER',
-        passwordHash: passwordHashed,
+        password: passwordHashed,
         referralCode,
         referredByUserId: referrer?.id,
       },
@@ -113,7 +113,7 @@ static async registerForCustomer({ body }: RegisterUserInput) {
   const {
     id,
     referredByUserId,
-    passwordHash,
+    password: _password,
     ...userWithoutPassword
   } = users;
 
@@ -158,12 +158,12 @@ static async registerForCustomer({ body }: RegisterUserInput) {
       data: {
         ...userData,
         role: 'EO',
-        passwordHash: passwordHashed,
+        password: passwordHashed,
         referralCode,
       },
     });
 
-    const { id, referredByUserId, passwordHash, ...userWithoutPassword } =
+    const { id, referredByUserId, password: _password, ...userWithoutPassword } =
       users;
 
     return userWithoutPassword;
@@ -182,7 +182,7 @@ static async registerForCustomer({ body }: RegisterUserInput) {
 
     const isComparePassword = await Bcrypt.comparePassword(
       body.password,
-      findUserByEmail.passwordHash,
+      findUserByEmail.password,
     );
 
     if (!isComparePassword) {
@@ -198,7 +198,7 @@ static async registerForCustomer({ body }: RegisterUserInput) {
       { expiresIn: '2m' },
     );
 
-    const { id, passwordHash, ...userWithoutPassword } = findUserByEmail;
+    const { id, password, ...userWithoutPassword } = findUserByEmail;
 
     return {
       token,
@@ -231,14 +231,14 @@ static async registerForCustomer({ body }: RegisterUserInput) {
 
     const user = await prisma.users.update({
       data: {
-        passwordHash: passwordHashed,
+        password: passwordHashed,
       },
       where: {
         id: params?.userId,
       },
     });
 
-    const { passwordHash, ...safeUser } = user;
+    const { password, ...safeUser } = user;
 
     return { safeUser };
   }
