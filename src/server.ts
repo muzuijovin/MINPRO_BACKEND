@@ -4,7 +4,6 @@ import cors from "cors";
 import { corsOptions } from "./config/cors.config";
 import { errorMiddleware } from "./middleware/error.middleware";
 // glen
-import authRoute from "./features/auth/auth.route";
 import { AuthsRoute } from "./features/auths/auths.route";
 import cookieParser from 'cookie-parser';
 
