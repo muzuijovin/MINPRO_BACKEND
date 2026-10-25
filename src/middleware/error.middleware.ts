@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../errors/app.error";
-import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
+import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
+import { MulterError } from "multer";
 
 export const errorMiddleware = (
   error: unknown,
@@ -11,19 +12,6 @@ export const errorMiddleware = (
 ) => {
   console.log(error);
 
-  // VALIDATION ERROR: Zod
-  if (error instanceof ZodError) {
-    return res.status(400).json({
-      success: false,
-      message: "Validation failed",
-      errors: error.issues.map((issue) => ({
-        field: issue.path.join("."),
-        message: issue.message,
-      })),
-      data: {},
-    });
-  }
-
   // APPLICATION ERROR
   if (error instanceof AppError) {
     return res.status(error.status).json({
@@ -31,6 +19,16 @@ export const errorMiddleware = (
       message: error.message,
       data: {},
     });
+  }
+
+  if (error instanceof MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        success: false,
+        message: `File size exceeds the maximum limit of 5 MB`,
+        data: {},
+      });
+    }
   }
 
   // JWT ERROR: token tidak valid atau kedaluwarsa
@@ -44,7 +42,7 @@ export const errorMiddleware = (
       data: {},
     });
   }
-  
+
   // INTERNAL SERVER ERROR
   return res.status(500).json({
     success: false,
