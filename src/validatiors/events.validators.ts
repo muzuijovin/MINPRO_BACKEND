@@ -33,8 +33,7 @@ const typePrice = z.enum(TypePrice);
 
 // pakai coerce karena create event dikirim lewat multipart/form-data (semua value jadi string)
 const price = z.coerce
-  .number()
-  .finite("Harga harus berupa angka yang valid")
+  .number({ message: "Harga harus berupa angka yang valid" })
   .min(0, "Harga tidak boleh negatif");
 
 const quota = z.coerce

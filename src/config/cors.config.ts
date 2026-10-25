@@ -10,15 +10,12 @@ export const corsOptions: CorsOptions = {
     const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(','); // [URL1, URL2]
 
  // Memeriksa apakah origin diizinkan
-    if (!origin || !ALLOWED_ORIGINS?.includes(origin)) {
-      return callback(new Error('Origin not allowed by CORS'));
-    }
+    // if (!origin || !ALLOWED_ORIGINS?.includes(origin)) {
+    //   return callback(new Error('Origin not allowed by CORS'));
+    // }
 
     return callback(null, true);
   },
   // wajib true karena FE pakai axios withCredentials: true, kalau tidak browser memblokir response nya
-  credentials: true,
-
-  // Mengizinkan pengiriman cookie antara frontend dan backend
   credentials: true,
 };
