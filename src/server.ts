@@ -11,6 +11,7 @@ import cookieParser from 'cookie-parser';
 // jovin
 import { EventsRoute } from "./features/events/events.route";
 import { CategoriesRoute } from "./features/categories/categories.route";
+import { VoucherRoute } from "./features/eventVoucher/voucher.route";
 
 //
 
@@ -35,6 +36,7 @@ app.use(`${API_PREFIX}/auth`, AuthsRoute);
 // Error handling middleware
 app.use(`${API_PREFIX}/events`, EventsRoute);
 app.use(`${API_PREFIX}/categories`, CategoriesRoute)
+app.use(`${API_PREFIX}/vouchers`, VoucherRoute)
 
 
 //
