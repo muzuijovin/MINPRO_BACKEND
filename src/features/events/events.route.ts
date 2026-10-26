@@ -1,11 +1,17 @@
 import { Router } from "express";
 import { EventsController } from "./events.controller";
 import { uploadMiddleware } from "../../middleware/upload.middleware";
+import { authenticate, authorize } from "../../middleware/auths.middleware";
 
 export const EventsRoute = Router();
 
+// hanya user dengan role EO (organizer) yang boleh create event
+// authenticate = cek token di cookie & simpan payload ke res.locals, authorize = cek role dari payload
+// urutannya wajib authenticate dulu baru authorize, dan sebelum upload biar file tidak diproses kalau user tidak berhak
 EventsRoute.post(
   '/',
+  authenticate,
+  authorize(["EO"]),
   uploadMiddleware(["jpg", "jpeg", "png", "svg", "webp"], "MEMORY").fields([
     { name: "coverImage", maxCount: 1 }]), EventsController.createEvent
  )
