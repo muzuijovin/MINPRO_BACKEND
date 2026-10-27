@@ -55,6 +55,22 @@ export class AuthController {
     });
   }
 
+  static async logout(req: Request, res: Response) {
+    // opsi harus sama dengan waktu cookie dibuat di login, kalau beda browser tidak menghapusnya
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+      data: {},
+    });
+  }
+
   static async me(req: Request, res: Response) {
     const { payload } = res?.locals;
 

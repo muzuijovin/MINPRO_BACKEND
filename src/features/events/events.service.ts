@@ -156,7 +156,9 @@ export class EventsService {
   static async getEventDetail({ params }: EventsGetDetailSchema) {
     const now = new Date();
 
-    const event = await prisma.events.findFirst({
+    // findFirst & aggregate rating dijalankan barengan (aggregate filter lewat slug event)
+    const [event, rating] = await Promise.all([
+      prisma.events.findFirst({
       where: {
         slug: params?.slug,
         deletedAt: null,
@@ -194,18 +196,18 @@ export class EventsService {
           },
         },
       },
-    });
+      }),
+      prisma.reviews.aggregate({
+        where: {
+          events: { slug: params?.slug, deletedAt: null },
+          deletedAt: null,
+        },
+        _avg: { rating: true },
+        _count: { rating: true },
+      }),
+    ]);
 
     if (!event) throw new AppError(404, `event not found`);
-
-    const rating = await prisma.reviews.aggregate({
-      where: {
-        eventId: event.id,
-        deletedAt: null,
-      },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
 
     return {
       event: {
