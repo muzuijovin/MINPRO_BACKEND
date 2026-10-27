@@ -18,6 +18,9 @@ AuthsRoute.post('/login', AuthController.login);
 
 AuthsRoute.get('/me', authenticate, AuthController.me);
 
+// tanpa authenticate: token yang sudah expired juga tetap bisa dihapus
+AuthsRoute.post('/logout', AuthController.logout);
+
 // AuthsRoute.get(
 //   '/test-customer',
 //   authenticate,
