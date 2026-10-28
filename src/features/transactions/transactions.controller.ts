@@ -4,6 +4,8 @@ import { validate } from "../../validators/validate";
 import {
   transactionsConfirmSchema,
   transactionsCreateSchema,
+  transactionsGetDetailSchema,
+  transactionsGetSchema,
   transactionsUploadProofSchema,
 } from "../../validatiors/transactions.validator";
 import { TransactionsServices } from "./transactions.services";
@@ -21,6 +23,63 @@ export class TransactionsController {
       success: true,
       message: "checkout successfully",
       data: checkout,
+    });
+  }
+
+  static async getMyTransactions(req: Request, res: Response) {
+    const { query } = validate(transactionsGetSchema, { query: req?.query });
+
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const { page, totalPage, limit, transactions, totalTransactions } =
+      await TransactionsServices.getMyTransactions({ query }, payload?.id);
+
+    res.status(200).json({
+      success: true,
+      message: "get transactions successfully",
+      data: transactions,
+      meta: {
+        page,
+        totalPage,
+        limit,
+        totalTransactions,
+      },
+    });
+  }
+
+  static async getOrganizerTransactions(req: Request, res: Response) {
+    const { query } = validate(transactionsGetSchema, { query: req?.query });
+
+    const { payload } = res.locals;
+
+    const { page, totalPage, limit, transactions, totalTransactions } =
+      await TransactionsServices.getOrganizerTransactions({ query }, payload?.id);
+
+    res.status(200).json({
+      success: true,
+      message: "get organizer transactions successfully",
+      data: transactions,
+      meta: {
+        page,
+        totalPage,
+        limit,
+        totalTransactions,
+      },
+    });
+  }
+
+  static async getTransactionDetail(req: Request, res: Response) {
+    const { params } = validate(transactionsGetDetailSchema, { params: req?.params });
+
+    const { payload } = res.locals;
+
+    const transaction = await TransactionsServices.getTransactionDetail({ params }, payload?.id);
+
+    res.status(200).json({
+      success: true,
+      message: "get transaction detail successfully",
+      data: transaction,
     });
   }
 

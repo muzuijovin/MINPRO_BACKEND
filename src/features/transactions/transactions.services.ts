@@ -1,12 +1,26 @@
 import { randomUUID } from "crypto";
 import { prisma } from "../../config/prisma-cllient.config";
 import { AppError } from "../../errors/app.error";
+import { Prisma } from "../../generated/prisma/client";
 import { cloudinaryUpload } from "../../lib/claudinary.lib";
 import {
   TransactionsConfirmSchema,
   TransactionsCreateSchema,
+  TransactionsGetDetailSchema,
+  TransactionsGetSchema,
   TransactionsUploadProofSchema,
 } from "../../validatiors/transactions.validator";
+
+// data event yang ikut ditampilkan di history & detail transaksi
+const eventSelect = {
+  id: true,
+  title: true,
+  slug: true,
+  location: true,
+  coverImageUrl: true,
+  startsAt: true,
+  endsAt: true,
+} satisfies Prisma.EventsSelect;
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -190,6 +204,154 @@ export class TransactionsServices {
         include: { tickets: true },
       });
     });
+  }
+
+  // history transaksi milik customer yang login (dashboard customer)
+  static async getMyTransactions({ query }: TransactionsGetSchema, customerId: string) {
+    const offset = (query?.page - 1) * query?.limit;
+
+    const where: Prisma.TransactionsWhereInput = {
+      customerId,
+      deletedAt: null,
+    };
+
+    if (query?.status) where.status = query.status;
+
+    if (query?.eventId) where.eventId = query.eventId;
+
+    // search bisa pakai kode transaksi atau judul event
+    if (query?.search) {
+      where.OR = [
+        { transactionCode: { contains: query.search, mode: "insensitive" } },
+        { events: { title: { contains: query.search, mode: "insensitive" } } },
+      ];
+    }
+
+    // findMany & count dijalankan barengan biar lebih cepat
+    const [transactions, totalTransactions] = await Promise.all([
+      prisma.transactions.findMany({
+        where,
+        take: query?.limit,
+        skip: offset,
+        include: {
+          events: { select: eventSelect },
+          _count: { select: { tickets: true } },
+        },
+        orderBy: {
+          [query.sortBy]: query.order,
+        },
+      }),
+      prisma.transactions.count({ where }),
+    ]);
+
+    const totalPage = Math.ceil(totalTransactions / query.limit);
+
+    return {
+      page: query?.page,
+      totalPage,
+      limit: query?.limit,
+      transactions,
+      totalTransactions,
+    };
+  }
+
+  // transaksi dari semua event milik EO yang login (kelola transaksi & daftar peserta di dashboard EO)
+  static async getOrganizerTransactions({ query }: TransactionsGetSchema, userId: string) {
+    const offset = (query?.page - 1) * query?.limit;
+
+    const where: Prisma.TransactionsWhereInput = {
+      events: { organizer: { userId } },
+      deletedAt: null,
+    };
+
+    if (query?.status) where.status = query.status;
+
+    if (query?.eventId) where.eventId = query.eventId;
+
+    // search bisa pakai kode transaksi, judul event atau username customer
+    if (query?.search) {
+      where.OR = [
+        { transactionCode: { contains: query.search, mode: "insensitive" } },
+        { events: { title: { contains: query.search, mode: "insensitive" } } },
+        { users: { username: { contains: query.search, mode: "insensitive" } } },
+      ];
+    }
+
+    const [transactions, totalTransactions] = await Promise.all([
+      prisma.transactions.findMany({
+        where,
+        take: query?.limit,
+        skip: offset,
+        include: {
+          events: { select: eventSelect },
+          // data peserta: nama, jumlah tiket (quantity) & total bayar (finalAmount) sudah ada di transaksi
+          users: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              customerProfile: { select: { fullname: true } },
+            },
+          },
+          _count: { select: { tickets: true } },
+        },
+        orderBy: {
+          [query.sortBy]: query.order,
+        },
+      }),
+      prisma.transactions.count({ where }),
+    ]);
+
+    const totalPage = Math.ceil(totalTransactions / query.limit);
+
+    return {
+      page: query?.page,
+      totalPage,
+      limit: query?.limit,
+      transactions,
+      totalTransactions,
+    };
+  }
+
+  // detail 1 transaksi, bisa dilihat customer pemilik transaksi & EO pemilik event
+  static async getTransactionDetail({ params }: TransactionsGetDetailSchema, userId: string) {
+    const transaction = await prisma.transactions.findFirst({
+      where: {
+        id: params?.id,
+        deletedAt: null,
+      },
+      include: {
+        events: {
+          select: {
+            ...eventSelect,
+            organizer: { select: { userId: true, organizationName: true } },
+          },
+        },
+        bankEo: {
+          select: { bankName: true, accountNumber: true, accountHolder: true },
+        },
+        eventVoucher: { select: { code: true, discountPercentage: true } },
+        coupons: { select: { code: true, discountPercentage: true } },
+        paymentProofs: {
+          where: { deletedAt: null },
+          orderBy: { uploadedAt: "desc" },
+        },
+        tickets: {
+          where: { deletedAt: null },
+          select: { id: true, status: true, issuedAt: true },
+        },
+      },
+    });
+
+    if (!transaction) throw new AppError(404, "Transaction not found");
+
+    const isCustomer = transaction.customerId === userId;
+    const isOrganizer = transaction.events.organizer.userId === userId;
+
+    if (!isCustomer && !isOrganizer)
+      throw new AppError(403, "You are not allowed to see this transaction");
+
+    return transaction;
   }
 
   // customer upload bukti transfer -> status jadi WAITING_FOR_CONFIRMATION

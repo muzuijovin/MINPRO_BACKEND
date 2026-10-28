@@ -1,0 +1,2940 @@
+{
+  "info": {
+    "name": "MINPRO - Transactions",
+    "description": "Urutan tes: jalankan folder dari atas ke bawah. Isi variable eoEmail, eoPassword, customerEmail, customerPassword, eventId dan cronSecret dulu di tab Variables. Token login berlaku 15 menit, kalau dapat 401 'jwt expired' jalankan ulang folder 0.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1"
+    },
+    {
+      "key": "eoEmail",
+      "value": ""
+    },
+    {
+      "key": "eoPassword",
+      "value": ""
+    },
+    {
+      "key": "customerEmail",
+      "value": ""
+    },
+    {
+      "key": "customerPassword",
+      "value": ""
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "description": "event PAID milik EO di atas, startsAt masih di masa depan, quota > 0"
+    },
+    {
+      "key": "cronSecret",
+      "value": "",
+      "description": "sama dengan CRON_SECRET di .env"
+    },
+    {
+      "key": "eoToken",
+      "value": ""
+    },
+    {
+      "key": "customerToken",
+      "value": ""
+    },
+    {
+      "key": "eoId",
+      "value": ""
+    },
+    {
+      "key": "customerId",
+      "value": ""
+    },
+    {
+      "key": "bankAccountId",
+      "value": ""
+    },
+    {
+      "key": "transactionId",
+      "value": ""
+    },
+    {
+      "key": "rejectTransactionId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Login",
+      "item": [
+        {
+          "name": "Login EO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{eoEmail}}\",\n  \"password\": \"{{eoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const setCookie = pm.response.headers.get(\"Set-Cookie\") || \"\";",
+                  "const match = setCookie.match(/token=([^;]+)/);",
+                  "pm.test(\"token tersimpan\", () => pm.expect(match).to.not.be.null);",
+                  "if (match) pm.collectionVariables.set(\"eoToken\", match[1]);",
+                  "pm.collectionVariables.set(\"eoId\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const setCookie = pm.response.headers.get(\"Set-Cookie\") || \"\";",
+                  "const match = setCookie.match(/token=([^;]+)/);",
+                  "pm.test(\"token tersimpan\", () => pm.expect(match).to.not.be.null);",
+                  "if (match) pm.collectionVariables.set(\"customerToken\", match[1]);",
+                  "pm.collectionVariables.set(\"customerId\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Bank Accounts",
+      "item": [
+        {
+          "name": "✅ Create rekening (EO)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"BCA\",\n  \"accountNumber\": \"0123456789012\",\n  \"accountHolder\": \"PT Event Seru\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"bankAccountId\", data.id);",
+                  "pm.test(\"angka 0 di depan tidak hilang\", () => pm.expect(data.accountNumber).to.eql(\"0123456789012\"));",
+                  "pm.test(\"default aktif\", () => pm.expect(data.isActive).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - nomor rekening ada huruf",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"BCA\",\n  \"accountNumber\": \"12345abc\",\n  \"accountHolder\": \"PT Event Seru\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - nomor rekening dikirim number",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"BCA\",\n  \"accountNumber\": 1234567890,\n  \"accountHolder\": \"PT Event Seru\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - field kosong",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"\",\n  \"accountNumber\": \"\",\n  \"accountHolder\": \"\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - login sebagai customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"BCA\",\n  \"accountNumber\": \"0123456789\",\n  \"accountHolder\": \"Budi\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - tanpa token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"BCA\",\n  \"accountNumber\": \"0123456789\",\n  \"accountHolder\": \"Budi\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Get rekening saya (EO)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ada minimal 1 rekening\", () => pm.expect(pm.response.json().data.length).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Nonaktifkan rekening",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts/{{bankAccountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts",
+                "{{bankAccountId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"isActive false\", () => pm.expect(pm.response.json().data.isActive).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Get rekening by event - rekening nonaktif tidak muncul",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts",
+                "events",
+                "{{eventId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const ids = pm.response.json().data.map((a) => a.id);",
+                  "pm.test(\"rekening nonaktif tidak ada\", () => pm.expect(ids).to.not.include(pm.collectionVariables.get(\"bankAccountId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Aktifkan lagi rekening",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts/{{bankAccountId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts",
+                "{{bankAccountId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Get rekening by event - rekening aktif muncul",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts",
+                "events",
+                "{{eventId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const ids = pm.response.json().data.map((a) => a.id);",
+                  "pm.test(\"rekening aktif ada\", () => pm.expect(ids).to.include(pm.collectionVariables.get(\"bankAccountId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Update - id tidak ada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts/id-ngawur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts",
+                "id-ngawur"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankName\": \"BNI\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Get rekening by event - event tidak ada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bank-accounts/events/id-ngawur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-accounts",
+                "events",
+                "id-ngawur"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Checkout",
+      "item": [
+        {
+          "name": "❌ quantity 0",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ quantity dikirim string",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": \"2\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ pointUsed negatif",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1,\n  \"pointUsed\": -100\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ login sebagai EO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ event tidak ada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"id-ngawur\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ rekening bukan milik EO event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"id-ngawur\",\n  \"quantity\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ quantity melebihi sisa kursi",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 999999\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ voucher tidak valid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1,\n  \"eventVoucherId\": \"id-ngawur\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ coupon tidak valid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1,\n  \"userCouponId\": \"id-ngawur\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ poin melebihi tagihan / saldo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1,\n  \"pointUsed\": 999999999\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Checkout 2 tiket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Cek di DB / Prisma Studio: quota event berkurang 2.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"transactionId\", data.id);",
+                  "pm.test(\"status transaksi WAITING_FOR_PAYMENT\", () => pm.expect(pm.response.json().data.status).to.eql(\"WAITING_FOR_PAYMENT\"));",
+                  "pm.test(\"subtotal = ticketPrice x 2\", () => pm.expect(Number(data.subtotal)).to.eql(Number(data.ticketPrice) * 2));",
+                  "pm.test(\"tanpa diskon finalAmount = subtotal\", () => pm.expect(Number(data.finalAmount)).to.eql(Number(data.subtotal)));",
+                  "pm.test(\"transactionCode diawali TRX-\", () => pm.expect(data.transactionCode).to.match(/^TRX-/));",
+                  "const minutes = (new Date(data.paymentDeadline) - new Date(data.createdAt)) / 60000;",
+                  "pm.test(\"paymentDeadline 10 menit\", () => pm.expect(Math.round(minutes)).to.eql(10));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Upload Bukti Bayar",
+      "item": [
+        {
+          "name": "❌ tanpa file",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/payment-proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "payment-proof"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ login sebagai EO",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/payment-proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "payment-proof"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "paymentProof",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ transaksi tidak ada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/id-ngawur/payment-proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "id-ngawur",
+                "payment-proof"
+              ]
+            },
+            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "paymentProof",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Upload bukti (pilih file jpg/png dulu)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/payment-proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "payment-proof"
+              ]
+            },
+            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "paymentProof",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"status transaksi WAITING_FOR_CONFIRMATION\", () => pm.expect(pm.response.json().data.status).to.eql(\"WAITING_FOR_CONFIRMATION\"));",
+                  "pm.test(\"bukti tersimpan & PENDING\", () => pm.expect(data.paymentProofs[0].decision).to.eql(\"PENDING\"));",
+                  "const days = (new Date(data.confirmationDeadline) - new Date(data.submittedProofAt)) / 86400000;",
+                  "pm.test(\"confirmationDeadline 3 hari\", () => pm.expect(Math.round(days)).to.eql(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Upload ulang (status sudah bukan WAITING_FOR_PAYMENT)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/payment-proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "payment-proof"
+              ]
+            },
+            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "paymentProof",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Lihat bukti bayar (customer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment-proofs/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-proofs",
+                "transactions",
+                "{{transactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ada 1 bukti\", () => pm.expect(pm.response.json().data.length).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Lihat bukti bayar (EO)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment-proofs/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-proofs",
+                "transactions",
+                "{{transactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Lihat bukti bayar - transaksi tidak ada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payment-proofs/transactions/id-ngawur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payment-proofs",
+                "transactions",
+                "id-ngawur"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. EO Accept",
+      "item": [
+        {
+          "name": "❌ decision PENDING",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"PENDING\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ decision ngawur",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"OK\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ login sebagai customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"ACCEPTED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ ACCEPTED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"ACCEPTED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"status transaksi PAID\", () => pm.expect(pm.response.json().data.status).to.eql(\"PAID\"));",
+                  "pm.test(\"tiket terbit sejumlah quantity\", () => pm.expect(data.tickets.length).to.eql(data.quantity));",
+                  "pm.test(\"bukti jadi ACCEPTED\", () => pm.expect(data.paymentProofs[0].decision).to.eql(\"ACCEPTED\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Confirm ulang (sudah PAID)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"REJECTED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. EO Reject (kursi dikembalikan)",
+      "item": [
+        {
+          "name": "✅ Checkout 3 tiket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Catat quota event di DB sebelum & sesudah request ini (harus berkurang 3).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"rejectTransactionId\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Upload bukti (pilih file dulu)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{rejectTransactionId}}/payment-proof",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{rejectTransactionId}}",
+                "payment-proof"
+              ]
+            },
+            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "paymentProof",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ REJECTED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{rejectTransactionId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{rejectTransactionId}}",
+                "confirm"
+              ]
+            },
+            "description": "Cek di DB: quota event naik lagi 3.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"REJECTED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"status transaksi REJECTED\", () => pm.expect(pm.response.json().data.status).to.eql(\"REJECTED\"));",
+                  "pm.test(\"tidak ada tiket\", () => pm.expect(data.tickets.length).to.eql(0));",
+                  "pm.test(\"rejectedAt terisi\", () => pm.expect(data.rejectedAt).to.not.be.null);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Cron Job Expire",
+      "item": [
+        {
+          "name": "❌ tanpa secret",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/jobs/expire",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "jobs",
+                "expire"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ secret salah",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-cron-secret",
+                "value": "salah"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/jobs/expire",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "jobs",
+                "expire"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ secret benar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-cron-secret",
+                "value": "{{cronSecret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/jobs/expire",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "jobs",
+                "expire"
+              ]
+            },
+            "description": "Tes expire: checkout 1 tiket tanpa upload bukti, tunggu > 10 menit, lalu jalankan ini. expired harus >= 1 (kalau npm run dev menyala, node-cron mungkin sudah duluan meng-expire)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"ada jumlah expired & cancelled\", () => { pm.expect(data).to.have.property(\"expired\"); pm.expect(data).to.have.property(\"cancelled\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Riwayat Transaksi Customer",
+      "item": [
+        {
+          "name": "✅ Semua riwayat saya",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua transaksi milik customer ini\", () => pm.response.json().data.forEach((item) => pm.expect(item.customerId === pm.collectionVariables.get(\"customerId\")).to.be.true));",
+                  "pm.test(\"ada data event\", () => pm.expect(pm.response.json().data[0].events).to.have.property(\"title\"));",
+                  "pm.test(\"ada meta pagination\", () => pm.expect(pm.response.json().meta).to.have.property(\"totalPage\"));",
+                  "pm.test(\"terbaru di atas\", () => { const d = pm.response.json().data; if (d.length > 1) pm.expect(new Date(d[0].createdAt) >= new Date(d[1].createdAt)).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Filter status PAID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?status=PAID",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions?status=PAID"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua status PAID\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"PAID\").to.be.true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Filter status REJECTED",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?status=REJECTED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions?status=REJECTED"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua status REJECTED\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"REJECTED\").to.be.true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Search kode transaksi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?search=TRX",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions?search=TRX"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"kode mengandung TRX\", () => pm.response.json().data.forEach((item) => pm.expect(item.transactionCode.includes(\"TRX\")).to.be.true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Pagination limit 2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?page=1&limit=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions?page=1&limit=2"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"maksimal 2 data\", () => pm.expect(pm.response.json().data.length).to.be.at.most(2));",
+                  "pm.test(\"meta.limit 2\", () => pm.expect(pm.response.json().meta.limit).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Urut finalAmount termurah",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?sortBy=finalAmount&order=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions?sortBy=finalAmount&order=asc"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const amounts = pm.response.json().data.map((t) => Number(t.finalAmount));",
+                  "pm.test(\"urut naik\", () => pm.expect(amounts).to.eql([...amounts].sort((a, b) => a - b)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ status ngawur",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?status=LUNAS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions?status=LUNAS"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ limit 0",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions?limit=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions?limit=0"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ login sebagai EO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ tanpa token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Detail Transaksi",
+      "item": [
+        {
+          "name": "✅ Detail (customer pemilik)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"ada info event\", () => pm.expect(data.events).to.have.property(\"title\"));",
+                  "pm.test(\"ada rekening tujuan\", () => pm.expect(data.bankEo).to.have.property(\"accountNumber\"));",
+                  "pm.test(\"transaksi PAID dari folder 4 punya tiket\", () => pm.expect(data.tickets.length).to.eql(data.quantity));",
+                  "pm.test(\"ada riwayat bukti bayar\", () => pm.expect(data.paymentProofs.length).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Detail (EO pemilik event)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Detail transaksi yang di-reject",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{rejectTransactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{rejectTransactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status transaksi REJECTED\", () => pm.expect(pm.response.json().data.status).to.eql(\"REJECTED\"));",
+                  "pm.test(\"tidak ada tiket\", () => pm.expect(pm.response.json().data.tickets.length).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ id tidak ada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/id-ngawur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "id-ngawur"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ tanpa token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/{{transactionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "{{transactionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Transaksi EO (kelola & peserta)",
+      "item": [
+        {
+          "name": "✅ Semua transaksi event saya",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/organizer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "organizer"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ada data peserta\", () => pm.expect(pm.response.json().data[0].users).to.have.property(\"username\"));",
+                  "pm.test(\"ada meta pagination\", () => pm.expect(pm.response.json().meta).to.have.property(\"totalTransactions\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Menunggu konfirmasi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/organizer?status=WAITING_FOR_CONFIRMATION",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "organizer?status=WAITING_FOR_CONFIRMATION"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua WAITING_FOR_CONFIRMATION\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"WAITING_FOR_CONFIRMATION\").to.be.true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Daftar peserta 1 event (PAID)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/organizer?status=PAID&eventId={{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "organizer?status=PAID&eventId={{eventId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua PAID & event yang dipilih\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"PAID\" && item.eventId === pm.collectionVariables.get(\"eventId\")).to.be.true));",
+                  "pm.test(\"ada nama, jumlah tiket & total bayar\", () => { const t = pm.response.json().data[0]; pm.expect(t.users.username).to.be.a(\"string\"); pm.expect(t.quantity).to.be.a(\"number\"); pm.expect(t).to.have.property(\"finalAmount\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Search kode transaksi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/organizer?search=TRX",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "organizer?search=TRX"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ login sebagai customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/organizer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "organizer"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ status ngawur",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/organizer?status=LUNAS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                "organizer?status=LUNAS"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Statistik EO",
+      "item": [
+        {
+          "name": "✅ Default (per bulan tahun ini)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"12 bulan\", () => pm.expect(data.chart.data.length).to.eql(12));",
+                  "pm.test(\"ada summary\", () => { pm.expect(data.summary).to.have.property(\"ticketsSold\"); pm.expect(data.summary).to.have.property(\"revenue\"); });",
+                  "pm.test(\"summary.transactions = jumlah PAID\", () => pm.expect(data.summary.transactions).to.eql(data.transactionsByStatus.PAID || 0));",
+                  "pm.test(\"ada penjualan dari folder 4\", () => pm.expect(data.summary.ticketsSold).to.be.at.least(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Per hari Februari 2026",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics?groupBy=day&year=2026&month=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics?groupBy=day&year=2026&month=2"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data.chart.data;",
+                  "pm.test(\"28 hari\", () => pm.expect(data.length).to.eql(28));",
+                  "pm.test(\"label pertama 2026-02-01\", () => pm.expect(data[0].label).to.eql(\"2026-02-01\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Per hari bulan ini",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics?groupBy=day",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics?groupBy=day"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const total = pm.response.json().data.chart.data.reduce((sum, d) => sum + d.ticketsSold, 0);",
+                  "pm.test(\"penjualan hari ini ikut terhitung\", () => pm.expect(total).to.be.at.least(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Per tahun",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics?groupBy=year",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics?groupBy=year"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data.chart.data;",
+                  "pm.test(\"label terakhir tahun sekarang\", () => pm.expect(data[data.length - 1].label).to.eql(String(new Date().getFullYear())));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Statistik 1 event",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics?eventId={{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics?eventId={{eventId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"tiket terjual minimal 2\", () => pm.expect(pm.response.json().data.summary.ticketsSold).to.be.at.least(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ groupBy ngawur",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics?groupBy=week",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics?groupBy=week"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ month 13",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics?groupBy=day&month=13",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics?groupBy=day&month=13"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ event bukan milik EO / tidak ada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics?eventId=id-ngawur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics?eventId=id-ngawur"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ login sebagai customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizer/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizer",
+                "statistics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

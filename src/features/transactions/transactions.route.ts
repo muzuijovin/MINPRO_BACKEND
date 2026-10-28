@@ -8,6 +8,15 @@ export const TransactionsRoute = Router();
 // checkout tiket hanya untuk customer
 TransactionsRoute.post("/", authenticate, authorize(["CUSTOMER"]), TransactionsController.checkout);
 
+// history transaksi untuk dashboard customer
+TransactionsRoute.get("/", authenticate, authorize(["CUSTOMER"]), TransactionsController.getMyTransactions);
+
+// transaksi dari event milik EO, harus di atas '/:id' biar "organizer" tidak kebaca sebagai id
+TransactionsRoute.get("/organizer", authenticate, authorize(["EO"]), TransactionsController.getOrganizerTransactions);
+
+// detail transaksi, boleh customer pemilik transaksi & EO pemilik event (dicek di service)
+TransactionsRoute.get("/:id", authenticate, TransactionsController.getTransactionDetail);
+
 // scheduler production (cron-job.org), tidak pakai token login tapi header x-cron-secret
 TransactionsRoute.post("/jobs/expire", TransactionsController.expireOverdueTransactions);
 
