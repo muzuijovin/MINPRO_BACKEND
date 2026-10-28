@@ -97,7 +97,8 @@ model OrganizerProfiles {
   npwp             String? @unique @db.VarChar(25)
   phoneNumber      String  @db.VarChar(20)
   businessAddress  String  @db.VarChar(500)
-  businessEmail    String? @db.VarChar(255)
+  logoUrl          String  @db.VarChar(500)
+  nib              String  @unique @db.VarChar(13)
   events                Events[]
   organizerBankAccounts OrganizerBankAccounts[]
 
@@ -289,7 +290,7 @@ model OrganizerBankAccounts {
   organizer OrganizerProfiles @relation(fields: [organizerId], references: [id])
 
   bankName String @db.VarChar(50)
-  accountNumber Int
+  accountNumber String @db.VarChar(30)
   accountHolder String @db.VarChar(100)
   isActive Boolean @default(false)
 
@@ -318,6 +319,7 @@ enum TransactionStatus {
 
 model Transactions {
   id String @id @default(uuid())
+  
   customerId String
   users Users @relation(fields: [customerId], references: [id])
 

@@ -12,6 +12,9 @@ import cookieParser from 'cookie-parser';
 import { EventsRoute } from "./features/events/events.route";
 import { CategoriesRoute } from "./features/categories/categories.route";
 import { VoucherRoute } from "./features/eventVoucher/voucher.route";
+import { TransactionsRoute } from "./features/transactions/transactions.route";
+import { BankAccountsRoute } from "./features/bankAccounts/bankAccounts.route";
+import { PaymentProofsRoute } from "./features/paymentProofs/paymentProofs.route";
 
 //
 
@@ -33,10 +36,12 @@ app.use(`${API_PREFIX}/auth`, AuthsRoute);
 
 //
 // jovin
-// Error handling middleware
 app.use(`${API_PREFIX}/events`, EventsRoute);
 app.use(`${API_PREFIX}/categories`, CategoriesRoute)
 app.use(`${API_PREFIX}/vouchers`, VoucherRoute)
+app.use(`${API_PREFIX}/transactions`, TransactionsRoute)
+app.use(`${API_PREFIX}/bank-accounts`, BankAccountsRoute)
+app.use(`${API_PREFIX}/payment-proofs`, PaymentProofsRoute)
 
 
 //
