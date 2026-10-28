@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "MINPRO - Feature 1 (Event, Voucher, Transaksi, Review)",
+    "name": "MINPRO - Feature 1 (Event, Voucher, Transaksi, Review, Notifikasi)",
     "description": "Jalankan folder berurutan dari atas ke bawah. Isi dulu variable eoEmail, eoPassword, customerEmail, customerPassword dan cronSecret di tab Variables. Panduan lengkap: postman/panduan-testing-postman.pdf",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -107,6 +107,14 @@
     },
     {
       "key": "rejectTransactionId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "unreadBefore",
       "value": ""
     },
     {
@@ -6245,7 +6253,468 @@
       ]
     },
     {
-      "name": "16. Hapus Event",
+      "name": "16. Notifikasi",
+      "item": [
+        {
+          "name": "✅ Notifikasi EO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json().data;",
+                  "pm.test(\"semua milik EO ini\", () => pm.response.json().data.forEach((item) => pm.expect(item.userId === pm.collectionVariables.get(\"eoId\")).to.be.true));",
+                  "pm.test(\"ada notifikasi bukti bayar baru (folder 07)\", () => pm.expect(list.some((n) => n.type === \"PAYMENT_PROOF_UPLOADED\" && n.transactionId === pm.collectionVariables.get(\"transactionId\"))).to.be.true);",
+                  "pm.test(\"ada meta unreadCount\", () => pm.expect(pm.response.json().meta).to.have.property(\"unreadCount\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Notifikasi customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json().data;",
+                  "pm.test(\"semua milik customer ini\", () => pm.response.json().data.forEach((item) => pm.expect(item.userId === pm.collectionVariables.get(\"customerId\")).to.be.true));",
+                  "pm.test(\"ada notifikasi pembayaran diterima (folder 08)\", () => pm.expect(list.some((n) => n.type === \"PAYMENT_ACCEPTED\" && n.transactionId === pm.collectionVariables.get(\"transactionId\"))).to.be.true);",
+                  "pm.test(\"ada notifikasi pembayaran ditolak (folder 09)\", () => pm.expect(list.some((n) => n.type === \"PAYMENT_REJECTED\" && n.transactionId === pm.collectionVariables.get(\"rejectTransactionId\"))).to.be.true);",
+                  "pm.test(\"ada info transaksi & event\", () => pm.expect(list[0].transactions.events).to.have.property(\"title\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Jumlah belum dibaca",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"minimal 2\", () => pm.expect(data.unreadCount).to.be.at.least(2));",
+                  "pm.collectionVariables.set(\"unreadBefore\", data.unreadCount);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Filter belum dibaca",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?isRead=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "isRead",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua isRead false\", () => pm.response.json().data.forEach((item) => pm.expect(item.isRead === false).to.be.true));",
+                  "pm.collectionVariables.set(\"notificationId\", pm.response.json().data[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Tandai 1 sudah dibaca",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"isRead true\", () => pm.expect(data.isRead).to.eql(true));",
+                  "pm.test(\"readAt terisi\", () => pm.expect(data.readAt).to.not.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Jumlah belum dibaca berkurang 1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"berkurang 1\", () => pm.expect(pm.response.json().data.unreadCount).to.eql(Number(pm.collectionVariables.get(\"unreadBefore\")) - 1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Tandai ulang notifikasi yang sama",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"tetap isRead true\", () => pm.expect(pm.response.json().data.isRead).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ EO tandai notifikasi milik customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ id tidak ada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/id-ngawur/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "id-ngawur",
+                "read"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ isRead ngawur",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?isRead=mungkin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "isRead",
+                  "value": "mungkin"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Tanpa token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Tandai semua sudah dibaca",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ada updatedCount\", () => pm.expect(pm.response.json().data).to.have.property(\"updatedCount\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Jumlah belum dibaca jadi 0",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"0\", () => pm.expect(pm.response.json().data.unreadCount).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "17. Hapus Event",
       "item": [
         {
           "name": "❌ Hapus - login sebagai customer",

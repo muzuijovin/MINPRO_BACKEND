@@ -46,6 +46,7 @@ model Users {
   transactions  Transactions[]
   paymentProofs PaymentProofs[]
   reviews       Reviews[]
+  notifications Notifications[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -361,6 +362,7 @@ model Transactions {
   // relasi
   paymentProofs PaymentProofs[]
   tickets Tickets[]
+  notifications Notifications[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -444,6 +446,40 @@ model Reviews {
   deletedAt DateTime?
 
   @@map("reviews")
+}
+
+// =====================================================
+// 10. NOTIFICATIONS
+// Notifikasi di aplikasi (ikon lonceng), dibuat otomatis saat status transaksi berubah
+// =====================================================
+
+enum NotificationType {
+  PAYMENT_PROOF_UPLOADED // ke EO: ada bukti bayar yang perlu dikonfirmasi
+  PAYMENT_ACCEPTED       // ke customer
+  PAYMENT_REJECTED       // ke customer
+  TRANSACTION_EXPIRED    // ke customer: tidak upload bukti dalam 10 menit
+  TRANSACTION_CANCELLED  // ke customer & EO: EO tidak merespons dalam 3 hari
+}
+
+model Notifications {
+  id     String @id @default(uuid())
+  userId String // penerima notifikasi
+  users  Users  @relation(fields: [userId], references: [id])
+
+  // opsional, biar FE bisa langsung buka detail transaksi saat notifikasi diklik
+  transactionId String?
+  transactions  Transactions? @relation(fields: [transactionId], references: [id])
+
+  type    NotificationType
+  title   String           @db.VarChar(150)
+  message String           @db.VarChar(500)
+  isRead  Boolean          @default(false)
+  readAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }
 
 
