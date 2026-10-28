@@ -8,6 +8,9 @@ export const TransactionsRoute = Router();
 // checkout tiket hanya untuk customer
 TransactionsRoute.post("/", authenticate, authorize(["CUSTOMER"]), TransactionsController.checkout);
 
+// scheduler production (cron-job.org), tidak pakai token login tapi header x-cron-secret
+TransactionsRoute.post("/jobs/expire", TransactionsController.expireOverdueTransactions);
+
 // customer upload bukti transfer -> WAITING_FOR_CONFIRMATION
 TransactionsRoute.patch(
   "/:id/payment-proof",
