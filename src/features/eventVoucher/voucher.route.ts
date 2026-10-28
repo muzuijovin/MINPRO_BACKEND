@@ -9,5 +9,6 @@ export const VoucherRoute = Router();
 VoucherRoute.post('/', authenticate, authorize(["EO"]), VoucherController.createVoucher)
 VoucherRoute.get('/', VoucherController.getVoucher)
 VoucherRoute.get('/:id', VoucherController.getVoucherDetail)
-VoucherRoute.delete('/:id', VoucherController.deleteVoucher)
-VoucherRoute.put('/:id', VoucherController.updateVoucher)
+// update & delete juga cuma boleh EO, kepemilikan event voucher nya dicek di service
+VoucherRoute.delete('/:id', authenticate, authorize(["EO"]), VoucherController.deleteVoucher)
+VoucherRoute.put('/:id', authenticate, authorize(["EO"]), VoucherController.updateVoucher)

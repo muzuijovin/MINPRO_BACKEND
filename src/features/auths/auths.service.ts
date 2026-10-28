@@ -195,7 +195,7 @@ static async registerForCustomer({ body }: RegisterUserInput) {
         role: findUserByEmail.role,
       },
       process.env.JWT_SECRET_KEY!,
-      { expiresIn: '30m' },
+      { expiresIn: '15m' },
     );
 
     const { id, password, ...userWithoutPassword } = findUserByEmail;

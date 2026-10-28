@@ -4,13 +4,17 @@ const id = z.string().min(1, "ID wajib diisi");
 
 const eventId = z.string().min(1, "event id wajib ada");
 
-// kode voucher disimpan uppercase biar "promo10" dan "PROMO10" dianggap sama (unique per event)
+// kode voucher dibuat sendiri oleh EO, disimpan uppercase biar "promo10" dan "PROMO10" dianggap sama (unique per event)
+// aturan harus sama dengan FE (features/validation/createVoucherSchema.ts)
 const code = z
   .string()
   .trim()
-  .min(3, "Kode voucher minimal 3 karakter")
-  .max(50, "Kode voucher maksimal 50 karakter")
-  .regex(/^[A-Za-z0-9_-]+$/, "Kode voucher hanya boleh huruf, angka, - dan _")
+  .min(4, "Kode voucher minimal 4 karakter")
+  .max(20, "Kode voucher maksimal 20 karakter")
+  .regex(
+    /^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$/,
+    "Kode voucher hanya boleh huruf, angka dan tanda - (tidak di awal/akhir)",
+  )
   .transform((value) => value.toUpperCase());
 
 const discountPercentage = z

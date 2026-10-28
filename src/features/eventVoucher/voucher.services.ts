@@ -10,16 +10,25 @@ import {
 } from "../../validatiors/voucher.validator";
 
 export class VoucherServices {
-  static async createVoucher({ body }: VoucherCreateSchema) {
+  static async createVoucher({ body }: VoucherCreateSchema, userId: string) {
     // eventId nya harus ada dlu, kalau ga ada ke throw new AppError
     const findEventById = await prisma.events.findFirst({
       where: {
         id: body.eventId,
         deletedAt: null,
       },
+      include: {
+        organizer: {
+          select: { userId: true },
+        },
+      },
     });
 
     if (!findEventById) throw new AppError(404, `eventId not found`);
+
+    // EO cuma boleh bikin voucher untuk event miliknya sendiri (userId dari token)
+    if (findEventById.organizer.userId !== userId)
+      throw new AppError(403, `You are not the organizer of this event`);
 
     // voucher tidak boleh berakhir setelah event selesai
     this.validateAgainstEvent(new Date(body.endAt), findEventById.endsAt);
@@ -111,16 +120,25 @@ export class VoucherServices {
     return voucher;
   }
 
-  static async deleteVoucher({ params }: VoucherDeletedSchema) {
+  static async deleteVoucher({ params }: VoucherDeletedSchema, userId: string) {
     // find id nya dulu di params. kalau ga ketemu.. throw ke appError
     const findVoucherById = await prisma.eventVoucher.findFirst({
       where: {
         id: params?.id,
         deletedAt: null,
       },
+      include: {
+        events: {
+          select: { organizer: { select: { userId: true } } },
+        },
+      },
     });
 
     if (!findVoucherById) throw new AppError(404, "id voucher not found");
+
+    // EO cuma boleh hapus voucher dari event miliknya sendiri (userId dari token)
+    if (findVoucherById.events.organizer.userId !== userId)
+      throw new AppError(403, `You are not the organizer of this event`);
 
     // soft delete + dinonaktifkan, biar voucher yang sudah dihapus pasti tidak bisa dipakai lagi
     const deleteData = await prisma.eventVoucher.update({
@@ -136,7 +154,10 @@ export class VoucherServices {
     return deleteData;
   }
 
-  static async updateVoucher({ params, body }: VoucherUpdatedSchema) {
+  static async updateVoucher(
+    { params, body }: VoucherUpdatedSchema,
+    userId: string,
+  ) {
     // cek id nya apakah ada
     const findVoucherById = await prisma.eventVoucher.findFirst({
       where: {
@@ -144,11 +165,19 @@ export class VoucherServices {
         deletedAt: null,
       },
       include: {
-        events: true,
+        events: {
+          include: {
+            organizer: { select: { userId: true } },
+          },
+        },
       },
     });
 
     if (!findVoucherById) throw new AppError(404, "id voucher not found");
+
+    // EO cuma boleh ubah voucher dari event miliknya sendiri (userId dari token)
+    if (findVoucherById.events.organizer.userId !== userId)
+      throw new AppError(403, `You are not the organizer of this event`);
 
     // validasi gabungan data lama + data baru (misal cuma kirim endAt, tetap dicek terhadap startAt lama)
     const startAt = body?.startAt ? new Date(body.startAt) : findVoucherById.startAt;

@@ -5,8 +5,6 @@ const id = z.string().min(1, "ID wajib diisi");
 
 const slug = z.string().trim().min(1, "Slug wajib diisi");
 
-const organizerId = z.string().min(1, "organisasi id wajib ada");
-
 const categoryId = z.string().min(1, "category id wajib ada");
 
 const title = z
@@ -74,7 +72,7 @@ function refineEventBody(body: EventBody, ctx: z.RefinementCtx) {
 export const eventsCreateSchema = z.object({
   body: z
     .object({
-      organizerId,
+      // organizerId tidak dikirim FE, diambil dari token di controller
       categoryId,
       title,
       description,
@@ -86,7 +84,14 @@ export const eventsCreateSchema = z.object({
       startsAt,
       endsAt,
     })
-    .superRefine(refineEventBody),
+    .superRefine(refineEventBody)
+    // khusus create: event baru tidak boleh dijadwalkan di waktu yang sudah lewat
+    // (tidak dipasang di update, biar event yang sudah berjalan tetap bisa diedit)
+    .superRefine((body, ctx) => {
+      if (body.startsAt && new Date(body.startsAt) <= new Date()) {
+        ctx.addIssue({ code: "custom", path: ["startsAt"], message: "Tanggal mulai harus setelah waktu sekarang" });
+      }
+    }),
 });
 
 export const eventsGetSchema = z.object({
