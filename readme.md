@@ -1,97 +1,308 @@
-CREATE DATABASE warehouse_db;
+# MINPRO Backend — Event Ticketing Platform
 
-CREATE TABLE products (
-    product_id          SERIAL PRIMARY KEY,
-    product_code        VARCHAR(10) UNIQUE NOT NULL,
-    product_name        VARCHAR(100) NOT NULL,
-    category            VARCHAR(50) NOT NULL,
-    supplier_name       VARCHAR(100) NOT NULL,
-    unit_price          NUMERIC(12, 2) NOT NULL CHECK (unit_price >= 0),
-    stock_quantity      INT NOT NULL CHECK (stock_quantity >= 0),
-    minimum_stock       INT NOT NULL CHECK (minimum_stock >= 0),
-    warehouse_zone      VARCHAR(10) NOT NULL,
-    status              VARCHAR(20) NOT NULL DEFAULT 'Available',
-    last_restock_date   DATE,
-    deleted_at          TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+Backend REST API untuk platform tiket event (seperti loket.com / eventbrite). Ada dua role:
 
-INSERT INTO products (product_code, product_name, category, supplier_name,
-  unit_price, stock_quantity, minimum_stock, warehouse_zone, status,
-  last_restock_date) VALUES
-('PRD-001','Kardus Packing Ukuran L','Packaging','PT Packindo Utama',8500.00,150,50,'Zone A','Available','2026-08-10'),
-('PRD-002','Bubble Wrap 50m','Packaging','PT Packindo Utama',45000.00,20,30,'Zone A','Available','2026-07-15'),
-('PRD-003','Lakban Bening 2 Inch','Packaging','CV Solusi Lakban',12000.00,200,100,'Zone A','Available','2026-09-01'),
-('PRD-004','Stretch Film 500mm','Packaging','PT Packindo Utama',65000.00,15,25,'Zone A','Available','2026-06-20'),
-('PRD-005','Palet Kayu Pinus','Equipment','CV Kayu Bersama',120000.00,45,10,'Zone B','Available','2026-05-12'),
-('PRD-006','Forklift Hand Stacker','Equipment','PT Heavy Lift',3500000.00,2,2,'Zone B','Available','2025-12-01'),
-('PRD-007','Timbangan Digital 100kg','Equipment','PT Heavy Lift',850000.00,0,5,'Zone B','Out of Stock','2026-01-10'),
-('PRD-008','Barcode Scanner Wireless','Electronics','PT Tech Supply',450000.00,12,10,'Zone C','Available','2026-08-25'),
-('PRD-009','Printer Thermal Label','Electronics','PT Tech Supply',1250000.00,5,8,'Zone C','Available','2026-04-18'),
-('PRD-010','Kertas Thermal 80mm','Supplies','CV Solusi Lakban',15000.00,300,50,'Zone C','Available','2026-09-15'),
-('PRD-011','Helm Keselamatan Kerja','Safety','PT Safety First',75000.00,30,15,'Zone D','Available',NULL),
-('PRD-012','Sarung Tangan Karet','Safety','PT Safety First',8500.00,8,50,'Zone D','Available','2026-02-14'),
-('PRD-013','Sepatu Safety Steel Toe','Safety','PT Safety First',320000.00,18,20,'Zone D','Available','2026-07-01'),
-('PRD-014','Kardus Packing Ukuran M','Packaging','PT Packindo Utama',6500.00,0,50,'Zone A','Discontinued','2025-10-05'),
-('PRD-015','Cairan Pembersih Lantai Gudang','Supplies','CV Bersih Bersama',35000.00,40,15,'Zone C','Available','2026-08-01');
+- **Customer**: mencari event, membeli tiket, upload bukti transfer, melihat riwayat transaksi, memberi review.
+- **Event Organizer (EO)**: membuat event & voucher, mengelola rekening, menerima / menolak pembayaran, melihat statistik penjualan.
 
-select * from products;
+Semua harga dalam Rupiah (IDR).
 
---tugas 1
-select 
-	product_code,
-	product_name,
-	category,
-	stock_quantity
-from products
-where deleted_at IS null;
+## Daftar Isi
 
---tugas 2 semua produk kategori 'Packaging' yang stoknya kurang dari atau sama dengan minimum_stock.
-SELECT 
-    product_code, 
-    product_name, 
-    category, 
-    stock_quantity 
-FROM 
-    products
-WHERE 
-    category = 'Packaging' 
-    AND deleted_at IS NULL 
-    AND stock_quantity <= minimum_stock;
+- [Tech Stack](#tech-stack)
+- [Struktur Folder](#struktur-folder)
+- [Menjalankan di Lokal](#menjalankan-di-lokal)
+- [Environment Variables](#environment-variables)
+- [Script & Perintah Prisma](#script--perintah-prisma)
+- [Daftar Endpoint](#daftar-endpoint)
+- [Alur Transaksi](#alur-transaksi)
+- [Scheduler Auto-expire & Auto-cancel](#scheduler-auto-expire--auto-cancel)
+- [Testing dengan Postman](#testing-dengan-postman)
+- [Format Response & Error](#format-response--error)
+- [Deploy ke Vercel](#deploy-ke-vercel)
 
--- tugas 3, tampilkan 3 produk termahal
-SELECT 
-    product_code, 
-    product_name, 
-    unit_price
-FROM 
-    products
-where 
-	deleted_at IS NULL 
-order by
-	unit_price desc 
-limit 3;
+## Tech Stack
 
--- tugas ke-4 update data
-UPDATE products
-SET stock_quantity = 50, updated_at = CURRENT_TIMESTAMP
-WHERE product_code = 'PRD-002' AND deleted_at IS NULL;
+| Bagian | Library |
+| --- | --- |
+| Runtime & framework | Node.js, Express 5, TypeScript |
+| Database & ORM | PostgreSQL (Supabase), Prisma 7 |
+| Validasi | Zod 4 |
+| Auth | JWT di cookie `token` (httpOnly), bcrypt |
+| Upload gambar | Multer (memory) + Cloudinary |
+| Email | Nodemailer |
+| Scheduler | node-cron |
 
+## Struktur Folder
 
--- tugas ke 5 soft delete
-UPDATE products 
-SET deleted_at = CURRENT_TIMESTAMP
-WHERE product_code = 'PRD-007' AND deleted_at IS NULL;
+```
+prisma/
+  schema.prisma          # skema database
+  migrations/            # riwayat migration
+  seed.ts                # data awal (kategori)
+postman/
+  transactions.postman_collection.json   # collection testing semua fitur
+  panduan-testing-postman.pdf            # panduan langkah testing
+src/
+  server.ts              # setup express & daftar route
+  application/app.ts     # entry point Vercel
+  config/                # cors & prisma client
+  errors/                # AppError
+  features/<fitur>/      # route -> controller -> service per fitur
+  jobs/                  # node-cron (auto-expire transaksi)
+  lib/                   # bcrypt, jwt, cloudinary, nodemailer
+  middleware/            # authenticate, authorize, upload, error handler
+  validatiors/           # schema Zod per fitur
+  validators/            # helper validate() + schema auth
+```
 
--- untuk mengembalikkan
-UPDATE products 
-SET deleted_at = NULL
-WHERE product_code = 'PRD-007';
+Setiap fitur mengikuti pola yang sama:
 
-select * from products
-where deleted_at IS NULL;
+- **route** — URL, middleware login & role.
+- **controller** — validasi request dengan Zod, ambil user dari token, kirim response.
+- **service** — logika bisnis & query Prisma.
 
+## Menjalankan di Lokal
 
+**Prasyarat:** Node.js 20+, npm, dan akses ke database PostgreSQL.
 
+```bash
+# 1. install dependency
+npm install
 
+# 2. buat file .env (lihat tabel Environment Variables di bawah)
+
+# 3. generate Prisma Client
+npx prisma generate
+
+# 4. (opsional) isi data kategori
+npx prisma db seed
+
+# 5. jalankan server
+npm run dev
+```
+
+Server berjalan di `http://localhost:<PORT><API_PREFIX>`, contoh `http://localhost:8000/api/v1`.
+
+> **Database dipakai bersama tim.** Jangan menjalankan `prisma migrate reset` karena akan menghapus semua data. Kalau `migrate dev` menampilkan *drift detected*, pull dulu folder `prisma/migrations` terbaru dari teman.
+
+## Environment Variables
+
+Buat file `.env` di root project:
+
+| Variable | Contoh | Keterangan |
+| --- | --- | --- |
+| `NODE_ENV` | `development` | `app.listen` & node-cron hanya jalan saat `development` |
+| `PORT` | `8000` | Port server lokal |
+| `API_PREFIX` | `/api/v1` | Prefix semua route |
+| `DATABASE_URL` | `postgresql://...` | Koneksi PostgreSQL (Supabase pooler) |
+| `DIRECT_URL` | `postgresql://...` | Koneksi langsung untuk migration |
+| `ALLOWED_ORIGINS` | `http://localhost:3000` | Origin FE yang diizinkan CORS |
+| `JWT_SECRET_KEY` | string acak | Kunci tanda tangan JWT |
+| `CRON_SECRET` | string acak panjang | Pengaman endpoint `POST /transactions/jobs/expire` |
+| `CLOUDINARY_CLOUD_NAME` | | Akun Cloudinary untuk upload gambar |
+| `CLOUDINARY_API_KEY` | | |
+| `CLOUDINARY_API_SECRET` | | |
+| `NODEMAILER_EMAIL` | `nama@gmail.com` | Email pengirim |
+| `NODEMAILER_APP_PASSWORD` | | App password Gmail |
+
+## Script & Perintah Prisma
+
+| Perintah | Fungsi |
+| --- | --- |
+| `npm run dev` | Jalankan server dengan nodemon (auto-restart) |
+| `npm run build` | Compile TypeScript |
+| `npx tsc --noEmit` | Cek error TypeScript tanpa build |
+| `npx prisma generate` | Generate Prisma Client setelah `schema.prisma` berubah |
+| `npx prisma migrate dev --name <nama>` | Buat & jalankan migration baru |
+| `npx prisma studio` | Lihat / ubah isi database lewat browser |
+| `npx prisma db seed` | Isi data kategori awal |
+
+## Daftar Endpoint
+
+Semua URL diawali `API_PREFIX` (contoh `/api/v1`). Login memakai cookie `token` yang di-set oleh `POST /auth/login` dan berlaku 15 menit.
+
+Keterangan akses: **publik** = tanpa login, **login** = role apa saja yang sudah login.
+
+### Auth
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| POST | `/auth/register/customer` | publik | Daftar sebagai customer |
+| POST | `/auth/register/eo` | publik | Daftar sebagai EO |
+| POST | `/auth/login` | publik | Login, set cookie `token` |
+| GET | `/auth/me` | login | Data user yang sedang login |
+| POST | `/auth/logout` | publik | Hapus cookie `token` |
+
+### Kategori
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| GET | `/categories` | publik | Daftar kategori. `?parentId=root` = kategori induk, `?search=`, pagination |
+| GET | `/categories/tree` | publik | Kategori induk beserta sub-kategori |
+
+### Event
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| POST | `/events` | EO | Buat event (form-data + file `coverImage`) |
+| GET | `/events` | publik | Daftar event. Filter: `search`, `category`, `location`, `typePrice`, `format`, `organizerId`, `time` (`upcoming`/`past`/`all`), `sortBy`, `order`, pagination |
+| GET | `/events/locations` | publik | Daftar lokasi unik untuk dropdown filter |
+| GET | `/events/:slug` | publik | Detail event + voucher yang berlaku + rata-rata rating |
+| PUT | `/events/:id` | EO pemilik | Update sebagian data event |
+| DELETE | `/events/:id` | EO pemilik | Hapus event (soft delete) |
+
+### Voucher
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| POST | `/vouchers` | EO pemilik event | Buat voucher untuk 1 event (kode unik per event, diskon 1–100%) |
+| GET | `/vouchers` | publik | Daftar voucher. `?eventId=`, `?search=`, pagination |
+| GET | `/vouchers/:id` | publik | Detail voucher |
+| PUT | `/vouchers/:id` | EO pemilik event | Update voucher |
+| DELETE | `/vouchers/:id` | EO pemilik event | Hapus voucher (soft delete) |
+
+### Rekening Bank EO
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| POST | `/bank-accounts` | EO | Tambah rekening (langsung aktif) |
+| GET | `/bank-accounts/me` | EO | Semua rekening milik EO |
+| GET | `/bank-accounts/events/:eventId` | login | Rekening aktif milik EO pemilik event (dipilih customer saat checkout) |
+| PATCH | `/bank-accounts/:id` | EO pemilik | Ubah / nonaktifkan rekening |
+
+### Transaksi
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| POST | `/transactions` | customer | Checkout tiket |
+| GET | `/transactions` | customer | Riwayat transaksi sendiri. `status`, `search`, `eventId`, `sortBy`, `order`, pagination |
+| GET | `/transactions/organizer` | EO | Transaksi dari semua event milik EO (kelola & daftar peserta) |
+| GET | `/transactions/:id` | customer pemilik / EO pemilik event | Detail transaksi |
+| PATCH | `/transactions/:id/payment-proof` | customer pemilik | Upload bukti transfer (form-data `paymentProof`) |
+| PATCH | `/transactions/:id/confirm` | EO pemilik event | `{"decision": "ACCEPTED"}` atau `"REJECTED"` |
+| POST | `/transactions/jobs/expire` | header `x-cron-secret` | Jalankan auto-expire & auto-cancel |
+| GET | `/payment-proofs/transactions/:transactionId` | customer / EO terkait | Riwayat bukti bayar 1 transaksi |
+
+Body checkout:
+
+```json
+{
+  "eventId": "uuid-event",
+  "bankAccountId": "uuid-rekening",
+  "quantity": 2,
+  "eventVoucherId": "uuid-voucher (opsional)",
+  "userCouponId": "uuid-coupon (opsional)",
+  "pointUsed": 0
+}
+```
+
+### Statistik EO
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| GET | `/organizer/statistics` | EO | Ringkasan penjualan & data grafik. `groupBy` (`year`/`month`/`day`), `year`, `month`, `eventId` |
+
+Hanya transaksi `PAID` yang dihitung sebagai penjualan. Tanggal dikelompokkan dalam WIB. Periode tanpa penjualan tetap muncul dengan nilai 0.
+
+### Review
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| POST | `/reviews` | customer | Review event: `eventId`, `rating` (1–5), `comment` |
+| GET | `/reviews` | publik | Daftar review `?eventId=` atau `?organizerId=`, dengan `averageRating` di `meta` |
+
+Customer hanya bisa review event yang **sudah selesai** dan pernah ia hadiri (punya transaksi `PAID`), maksimal 1 review per event.
+
+## Alur Transaksi
+
+```
+Checkout (POST /transactions)
+  │  kursi, kuota voucher/coupon & poin langsung dipotong
+  │
+  ├─ total Rp0 (event gratis / diskon penuh) ──────────────► PAID (tiket langsung terbit)
+  ▼
+WAITING_FOR_PAYMENT ── tidak upload bukti dalam 10 menit ──► EXPIRED    ┐
+  │ upload bukti                                                       │
+  ▼                                                                    │ kursi, voucher,
+WAITING_FOR_CONFIRMATION ── EO tidak merespons 3 hari ─────► CANCELLED  ├ coupon & poin
+  │                                                                    │ dikembalikan
+  ├─ EO REJECTED ──────────────────────────────────────────► REJECTED   ┘
+  └─ EO ACCEPTED ──────────────────────────────────────────► PAID (tiket terbit)
+```
+
+**Perhitungan harga** (semuanya di server, tidak diterima dari FE):
+
+1. `subtotal = harga tiket × quantity`. Harga tiket disimpan saat checkout, jadi perubahan harga event tidak mengubah transaksi lama.
+2. Dikurangi diskon voucher dan diskon coupon (persentase dari `subtotal`).
+3. Dikurangi poin (1 poin = Rp1, tidak boleh melebihi sisa tagihan). Poin dipotong dari lot yang paling cepat kedaluwarsa.
+4. Hasilnya `finalAmount`.
+
+**Race condition sudah ditangani.** Semua langkah checkout dibungkus satu `prisma.$transaction`. Kuota kursi, voucher, coupon dan poin hanya dipotong kalau masih cukup. Kalau sisa kursi 1 dan dua customer checkout bersamaan, hanya yang lebih dulu sampai ke database yang berhasil, dan yang lain mendapat `400 Seats are no longer available`. Perubahan status (upload bukti, accept, reject, expire) juga hanya jalan kalau statusnya masih sesuai, jadi tidak bisa diproses dua kali.
+
+## Scheduler Auto-expire & Auto-cancel
+
+Logikanya ada di `TransactionsServices.expireOverdueTransactions()`:
+
+- `WAITING_FOR_PAYMENT` yang lewat `paymentDeadline` (10 menit) → `EXPIRED`
+- `WAITING_FOR_CONFIRMATION` yang lewat `confirmationDeadline` (3 hari) → `CANCELLED`
+
+Keduanya mengembalikan kursi, kuota voucher/coupon dan poin.
+
+| Lingkungan | Cara jalan |
+| --- | --- |
+| Lokal (`npm run dev`) | node-cron di `src/jobs/transactions.job.ts` menjalankannya tiap menit secara otomatis |
+| Production (Vercel) | Vercel serverless tidak bisa menjalankan node-cron. Buat job di [cron-job.org](https://cron-job.org) yang memanggil `POST <domain>/api/v1/transactions/jobs/expire` tiap menit dengan header `x-cron-secret: <CRON_SECRET>` |
+
+## Testing dengan Postman
+
+Semua fitur bisa dites dengan collection di folder [`postman/`](postman/):
+
+1. Import `postman/transactions.postman_collection.json` ke Postman.
+2. Isi variable `cronSecret` (sama dengan `CRON_SECRET` di `.env`). Variable lain sudah terisi atau terisi otomatis.
+3. Ikuti langkah di [`postman/panduan-testing-postman.pdf`](postman/panduan-testing-postman.pdf).
+
+Collection berisi 149 request dalam 17 folder (register, login, kategori, event, voucher, rekening, checkout, bukti bayar, accept, reject, cron, riwayat, detail, transaksi EO, statistik, review, hapus event). Setiap request punya test otomatis, jadi cukup cek tab **Test Results** semuanya hijau.
+
+> **Catatan:** register EO belum otomatis membuat profil organizer. Sebelum testing, buat dulu baris di tabel `OrganizerProfiles` lewat `npx prisma studio` (langkahnya ada di PDF bagian A3).
+
+## Format Response & Error
+
+Response sukses:
+
+```json
+{
+  "success": true,
+  "message": "get transactions successfully",
+  "data": [],
+  "meta": { "page": 1, "totalPage": 1, "limit": 10, "totalTransactions": 0 }
+}
+```
+
+`meta` hanya ada di endpoint yang memakai pagination.
+
+Response error:
+
+```json
+{
+  "success": false,
+  "message": "Seats are no longer available",
+  "data": {}
+}
+```
+
+| Status | Arti |
+| --- | --- |
+| `400` | Request valid tapi ditolak aturan bisnis (kursi habis, event sudah mulai, status transaksi tidak sesuai) |
+| `401` | Belum login, token kedaluwarsa, atau role tidak sesuai |
+| `403` | Sudah login tapi bukan pemilik data |
+| `404` | Data tidak ditemukan |
+| `409` | Data bentrok (kode voucher sudah ada, sudah pernah review, poin sedang dipakai checkout lain) |
+| `413` | File lebih dari 5 MB |
+| `422` | Data request tidak lolos validasi Zod |
+
+## Deploy ke Vercel
+
+- Entry point: `src/application/app.ts` (diatur di `vercel.json`).
+- Isi semua environment variable di dashboard Vercel → **Settings → Environment Variables**, termasuk `CRON_SECRET`.
+- Setelah deploy, buat job cron-job.org seperti di bagian [Scheduler](#scheduler-auto-expire--auto-cancel).
