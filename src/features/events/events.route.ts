@@ -20,5 +20,6 @@ EventsRoute.get('/', EventsController.getEvents)
 // '/locations' harus di atas '/:slug', kalau tidak "locations" kebaca sebagai slug
 EventsRoute.get('/locations', EventsController.getEventLocations)
 EventsRoute.get('/:slug', EventsController.getEventDetail)
-EventsRoute.delete('/:id', EventsController.deleteEvents)
-EventsRoute.put('/:id', EventsController.updatedEvents)
+// update & delete juga cuma boleh EO, kepemilikan event nya dicek di service
+EventsRoute.delete('/:id', authenticate, authorize(["EO"]), EventsController.deleteEvents)
+EventsRoute.put('/:id', authenticate, authorize(["EO"]), EventsController.updatedEvents)

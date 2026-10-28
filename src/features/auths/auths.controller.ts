@@ -43,6 +43,8 @@ export class AuthController {
       secure: true,
       sameSite: 'lax',
       path: '/',
+      // samakan dengan expiresIn JWT (15m) supaya cookie ikut hilang saat token expired
+      maxAge: 15 * 60 * 1000,
     });
 
     res.status(200).json({

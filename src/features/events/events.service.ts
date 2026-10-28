@@ -15,19 +15,20 @@ export class EventsService {
   static async createEvent(
     { body }: EventsCreateSchema,
     files: Express.Multer.File[],
+    userId: string,
   ) {
     // cover image wajib diupload
     if (!files[0]) throw new AppError(422, "Cover image is required");
 
-    // find organizerId di locals.payload, kalau misal gaada , ke throw
-    const findOrganizerById = await prisma.organizerProfiles.findFirst({
+    // cari organizer profile milik user yang login (userId dari token), kalau gaada ke throw
+    const findOrganizer = await prisma.organizerProfiles.findFirst({
       where: {
-        id: body.organizerId,
+        userId,
         deletedAt: null,
       },
     });
 
-    if (!findOrganizerById) throw new AppError(404, `organizerId not found`);
+    if (!findOrganizer) throw new AppError(404, `Organizer profile not found`);
 
     // find categoryId, kalau misal gaada / sudah dihapus, ke throw
     const findCategoryById = await prisma.categories.findFirst({
@@ -58,7 +59,7 @@ export class EventsService {
         startsAt: body.startsAt,
         endsAt: body.endsAt,
         organizer: {
-          connect: { id: body.organizerId },
+          connect: { id: findOrganizer.id },
         },
 
         categories: {
@@ -236,16 +237,25 @@ export class EventsService {
     return { locations: locations.map((item) => item.location) };
   }
 
-  static async deleteEvent({ params }: EventsDeletedSchema) {
+  static async deleteEvent({ params }: EventsDeletedSchema, userId: string) {
     // find id, kalau misal gaada di table, ke throw
     const findEventById = await prisma.events.findFirst({
       where: {
         id: params?.id,
         deletedAt: null,
       },
+      include: {
+        organizer: {
+          select: { userId: true },
+        },
+      },
     });
 
     if (!findEventById) throw new AppError(404, `event not found`);
+
+    // EO cuma boleh hapus event miliknya sendiri (userId dari token)
+    if (findEventById.organizer.userId !== userId)
+      throw new AppError(403, `You are not the organizer of this event`);
 
     const deletedEvents = await prisma.events.update({
       data: {
@@ -261,16 +271,28 @@ export class EventsService {
     };
   }
 
-  static async updatedEvents({ params, body }: EventUpdatedSchema) {
+  static async updatedEvents(
+    { params, body }: EventUpdatedSchema,
+    userId: string,
+  ) {
     // find id, kalau misal gaada di table, ke throw
     const findEventsById = await prisma.events.findFirst({
       where: {
         id: params?.id,
         deletedAt: null,
       },
+      include: {
+        organizer: {
+          select: { userId: true },
+        },
+      },
     });
 
     if (!findEventsById) throw new AppError(404, `event not found`);
+
+    // EO cuma boleh ubah event miliknya sendiri (userId dari token)
+    if (findEventsById.organizer.userId !== userId)
+      throw new AppError(403, `You are not the organizer of this event`);
 
     // kalau categoryId diganti, pastikan category nya ada
     if (body?.categoryId) {

@@ -13,7 +13,10 @@ export class VoucherController {
   static async createVoucher(req: Request, res: Response) {
     const { body } = validate(voucherCreateSchema, { body: req?.body });
 
-    const create = await VoucherServices.createVoucher({ body });
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const create = await VoucherServices.createVoucher({ body }, payload?.id);
 
     res.status(201).json({
       success: true,
@@ -56,7 +59,13 @@ export class VoucherController {
   static async deleteVoucher(req: Request, res: Response) {
     const { params } = validate(voucherDeletedSchema, { params: req?.params });
 
-    const deleteData = await VoucherServices.deleteVoucher({ params });
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const deleteData = await VoucherServices.deleteVoucher(
+      { params },
+      payload?.id,
+    );
 
     res.status(200).json({
       success: true,
@@ -73,7 +82,13 @@ export class VoucherController {
       body: req?.body,
     });
 
-    const updateData = await VoucherServices.updateVoucher({ params, body });
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const updateData = await VoucherServices.updateVoucher(
+      { params, body },
+      payload?.id,
+    );
 
     res.status(200).json({
       success: true,
