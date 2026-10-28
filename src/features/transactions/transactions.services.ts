@@ -624,13 +624,18 @@ export class TransactionsServices {
       const deduct = Math.min(lot.pointsRemaining, remaining);
       const pointsRemaining = lot.pointsRemaining - deduct;
 
-      await tx.pointLots.update({
-        where: { id: lot.id },
+      // update cuma jalan kalau sisa poin lot masih sama seperti saat dibaca,
+      // biar 2 checkout bersamaan (akun sama, device beda) tidak memakai poin yang sama 2x
+      const updatePointLot = await tx.pointLots.updateMany({
+        where: { id: lot.id, pointsRemaining: lot.pointsRemaining },
         data: {
           pointsRemaining,
           status: pointsRemaining === 0 ? "FULLY_USED" : "PARTIALLY_USED",
         },
       });
+
+      if (updatePointLot.count === 0)
+        throw new AppError(409, "Your points have just been used in another checkout, please try again");
 
       remaining -= deduct;
     }
