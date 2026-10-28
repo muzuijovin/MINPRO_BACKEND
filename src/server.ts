@@ -12,6 +12,10 @@ import cookieParser from 'cookie-parser';
 import { EventsRoute } from "./features/events/events.route";
 import { CategoriesRoute } from "./features/categories/categories.route";
 import { VoucherRoute } from "./features/eventVoucher/voucher.route";
+import { BankAccountsRoute } from "./features/bankAccounts/bankAccounts.route";
+import { TransactionsRoute } from "./features/transactions/transactions.route";
+import { PaymentProofsRoute } from "./features/paymentProofs/paymentProofs.route";
+import { startTransactionsJob } from "./jobs/transactions.job";
 
 //
 
@@ -33,10 +37,12 @@ app.use(`${API_PREFIX}/auth`, AuthsRoute);
 
 //
 // jovin
-// Error handling middleware
 app.use(`${API_PREFIX}/events`, EventsRoute);
 app.use(`${API_PREFIX}/categories`, CategoriesRoute)
 app.use(`${API_PREFIX}/vouchers`, VoucherRoute)
+app.use(`${API_PREFIX}/transactions`, TransactionsRoute)
+app.use(`${API_PREFIX}/bank-accounts`, BankAccountsRoute)
+app.use(`${API_PREFIX}/payment-proofs`, PaymentProofsRoute)
 
 
 //
@@ -48,6 +54,9 @@ if (process.env.NODE_ENV === "development") {
   app.listen(PORT, () => {
     console.log(`Application Running On Port ${PORT}`);
   });
+
+  // auto-expire & auto-cancel transaksi tiap menit (production pakai POST /transactions/jobs/expire)
+  startTransactionsJob();
 }
 
 export default app;
