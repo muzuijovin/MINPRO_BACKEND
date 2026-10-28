@@ -3,6 +3,7 @@ import { prisma } from "../../config/prisma-cllient.config";
 import { AppError } from "../../errors/app.error";
 import { Prisma } from "../../generated/prisma/client";
 import { cloudinaryUpload } from "../../lib/claudinary.lib";
+import { NotificationsServices } from "../notifications/notifications.services";
 import {
   TransactionsConfirmSchema,
   TransactionsCreateSchema,
@@ -33,6 +34,12 @@ type TransactionToRestore = {
   userCouponId: string | null;
   quantity: number;
   pointUsed: number;
+};
+
+// data transaksi yang di-expire / cancel scheduler, ditambah info untuk isi notifikasi
+type TransactionToClose = TransactionToRestore & {
+  transactionCode: string;
+  events: { title: string; organizer: { userId: string } };
 };
 
 // batas waktu customer upload bukti bayar setelah checkout
@@ -413,6 +420,16 @@ export class TransactionsServices {
         },
       });
 
+      await NotificationsServices.createNotifications(tx, [
+        {
+          userId: findTransactionById.events.organizer.userId,
+          transactionId: params.id,
+          type: "PAYMENT_PROOF_UPLOADED",
+          title: "New payment proof",
+          message: `Transaction ${findTransactionById.transactionCode} for "${findTransactionById.events.title}" is waiting for your confirmation.`,
+        },
+      ]);
+
       return await tx.transactions.findUnique({
         where: { id: params.id },
         include: { paymentProofs: true },
@@ -479,6 +496,26 @@ export class TransactionsServices {
         await this.restoreTransactionResources(tx, findTransactionById, now);
       }
 
+      const { transactionCode, events } = findTransactionById;
+
+      await NotificationsServices.createNotifications(tx, [
+        isAccepted
+          ? {
+              userId: findTransactionById.customerId,
+              transactionId: params.id,
+              type: "PAYMENT_ACCEPTED",
+              title: "Payment accepted",
+              message: `Your payment for "${events.title}" (${transactionCode}) has been accepted. Your tickets are ready.`,
+            }
+          : {
+              userId: findTransactionById.customerId,
+              transactionId: params.id,
+              type: "PAYMENT_REJECTED",
+              title: "Payment rejected",
+              message: `Your payment for "${events.title}" (${transactionCode}) was rejected. Your seats, voucher, coupon and points have been returned.`,
+            },
+      ]);
+
       return await tx.transactions.findUnique({
         where: { id: params.id },
         include: { paymentProofs: true, tickets: true },
@@ -493,12 +530,18 @@ export class TransactionsServices {
   static async expireOverdueTransactions() {
     const now = new Date();
 
+    // judul event & user EO dibutuhkan untuk isi notifikasi
+    const includeEvent = {
+      events: { select: { title: true, organizer: { select: { userId: true } } } },
+    };
+
     const overduePayments = await prisma.transactions.findMany({
       where: {
         status: "WAITING_FOR_PAYMENT",
         paymentDeadline: { lt: now },
         deletedAt: null,
       },
+      include: includeEvent,
     });
 
     const overdueConfirmations = await prisma.transactions.findMany({
@@ -507,6 +550,7 @@ export class TransactionsServices {
         confirmationDeadline: { lt: now },
         deletedAt: null,
       },
+      include: includeEvent,
     });
 
     let expired = 0;
@@ -526,7 +570,7 @@ export class TransactionsServices {
 
   // ubah status 1 transaksi + kembalikan resource nya, dibungkus 1 SQL transaction
   private static async closeTransaction(
-    transaction: TransactionToRestore,
+    transaction: TransactionToClose,
     fromStatus: "WAITING_FOR_PAYMENT" | "WAITING_FOR_CONFIRMATION",
     toStatus: "EXPIRED" | "CANCELLED",
     now: Date,
@@ -544,6 +588,38 @@ export class TransactionsServices {
       if (updateTransaction.count === 0) return false;
 
       await this.restoreTransactionResources(tx, transaction, now);
+
+      const { transactionCode, events } = transaction;
+
+      if (toStatus === "EXPIRED") {
+        await NotificationsServices.createNotifications(tx, [
+          {
+            userId: transaction.customerId,
+            transactionId: transaction.id,
+            type: "TRANSACTION_EXPIRED",
+            title: "Transaction expired",
+            message: `Your transaction for "${events.title}" (${transactionCode}) expired because no payment proof was uploaded within 10 minutes.`,
+          },
+        ]);
+      } else {
+        // dibatalkan karena EO tidak merespons, jadi customer & EO sama-sama dikabari
+        await NotificationsServices.createNotifications(tx, [
+          {
+            userId: transaction.customerId,
+            transactionId: transaction.id,
+            type: "TRANSACTION_CANCELLED",
+            title: "Transaction cancelled",
+            message: `Your transaction for "${events.title}" (${transactionCode}) was cancelled because the organizer did not confirm it within 3 days. Your seats, voucher, coupon and points have been returned.`,
+          },
+          {
+            userId: events.organizer.userId,
+            transactionId: transaction.id,
+            type: "TRANSACTION_CANCELLED",
+            title: "Transaction cancelled",
+            message: `Transaction ${transactionCode} for "${events.title}" was cancelled automatically because it was not confirmed within 3 days.`,
+          },
+        ]);
+      }
 
       return true;
     });
