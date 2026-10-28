@@ -2,8 +2,8 @@
 
 Backend REST API untuk platform tiket event (seperti loket.com / eventbrite). Ada dua role:
 
-- **Customer**: mencari event, membeli tiket, upload bukti transfer, melihat riwayat transaksi, memberi review.
-- **Event Organizer (EO)**: membuat event & voucher, mengelola rekening, menerima / menolak pembayaran, melihat statistik penjualan.
+- **Customer**: mencari event, membeli tiket, upload bukti transfer, melihat riwayat transaksi, memberi review, menerima notifikasi status pembayaran.
+- **Event Organizer (EO)**: membuat event & voucher, mengelola rekening, menerima / menolak pembayaran, melihat statistik penjualan, menerima notifikasi bukti bayar baru.
 
 Semua harga dalam Rupiah (IDR).
 
@@ -17,6 +17,7 @@ Semua harga dalam Rupiah (IDR).
 - [Daftar Endpoint](#daftar-endpoint)
 - [Alur Transaksi](#alur-transaksi)
 - [Scheduler Auto-expire & Auto-cancel](#scheduler-auto-expire--auto-cancel)
+- [Cara Kerja Notifikasi](#cara-kerja-notifikasi)
 - [Testing dengan Postman](#testing-dengan-postman)
 - [Format Response & Error](#format-response--error)
 - [Deploy ke Vercel](#deploy-ke-vercel)
@@ -214,6 +215,17 @@ Hanya transaksi `PAID` yang dihitung sebagai penjualan. Tanggal dikelompokkan da
 
 Customer hanya bisa review event yang **sudah selesai** dan pernah ia hadiri (punya transaksi `PAID`), maksimal 1 review per event.
 
+### Notifikasi
+
+| Method | URL | Akses | Fungsi |
+| --- | --- | --- | --- |
+| GET | `/notifications` | login | Notifikasi milik sendiri, terbaru di atas. `?isRead=false`, pagination, `unreadCount` di `meta` |
+| GET | `/notifications/unread-count` | login | Jumlah notifikasi belum dibaca (angka di ikon lonceng) |
+| PATCH | `/notifications/:id/read` | pemilik notifikasi | Tandai 1 notifikasi sudah dibaca |
+| PATCH | `/notifications/read-all` | login | Tandai semua notifikasi sudah dibaca |
+
+Tidak ada endpoint untuk membuat notifikasi. Notifikasi dibuat otomatis oleh server, lihat bagian [Cara Kerja Notifikasi](#cara-kerja-notifikasi).
+
 ## Alur Transaksi
 
 ```
@@ -254,6 +266,22 @@ Keduanya mengembalikan kursi, kuota voucher/coupon dan poin.
 | Lokal (`npm run dev`) | node-cron di `src/jobs/transactions.job.ts` menjalankannya tiap menit secara otomatis |
 | Production (Vercel) | Vercel serverless tidak bisa menjalankan node-cron. Buat job di [cron-job.org](https://cron-job.org) yang memanggil `POST <domain>/api/v1/transactions/jobs/expire` tiap menit dengan header `x-cron-secret: <CRON_SECRET>` |
 
+## Cara Kerja Notifikasi
+
+Notifikasi di aplikasi (ikon lonceng) disimpan di tabel `notifications`. Notifikasi dibuat otomatis oleh service transaksi lewat `NotificationsServices.createNotifications()`, di dalam `prisma.$transaction` yang sama dengan perubahan status. Jadi kalau perubahan status gagal, notifikasinya juga tidak tersimpan.
+
+| Kejadian | Type | Penerima |
+| --- | --- | --- |
+| Customer upload bukti bayar | `PAYMENT_PROOF_UPLOADED` | EO pemilik event |
+| EO accept | `PAYMENT_ACCEPTED` | Customer |
+| EO reject | `PAYMENT_REJECTED` | Customer |
+| Tidak upload bukti dalam 10 menit (cron) | `TRANSACTION_EXPIRED` | Customer |
+| EO tidak merespons 3 hari (cron) | `TRANSACTION_CANCELLED` | Customer & EO |
+
+Setiap notifikasi menyimpan `transactionId`, jadi FE bisa langsung membuka detail transaksi saat notifikasi diklik.
+
+Karena backend berjalan di Vercel (serverless), WebSocket tidak bisa dipakai. FE cukup memanggil `GET /notifications/unread-count` secara berkala, misalnya tiap 30 detik, atau saat halaman dibuka.
+
 ## Testing dengan Postman
 
 Semua fitur bisa dites dengan collection di folder [`postman/`](postman/):
@@ -262,7 +290,7 @@ Semua fitur bisa dites dengan collection di folder [`postman/`](postman/):
 2. Isi variable `cronSecret` (sama dengan `CRON_SECRET` di `.env`). Variable lain sudah terisi atau terisi otomatis.
 3. Ikuti langkah di [`postman/panduan-testing-postman.pdf`](postman/panduan-testing-postman.pdf).
 
-Collection berisi 149 request dalam 17 folder (register, login, kategori, event, voucher, rekening, checkout, bukti bayar, accept, reject, cron, riwayat, detail, transaksi EO, statistik, review, hapus event). Setiap request punya test otomatis, jadi cukup cek tab **Test Results** semuanya hijau.
+Collection berisi 162 request dalam 18 folder (register, login, kategori, event, voucher, rekening, checkout, bukti bayar, accept, reject, cron, riwayat, detail, transaksi EO, statistik, review, notifikasi, hapus event). Setiap request punya test otomatis, jadi cukup cek tab **Test Results** semuanya hijau.
 
 > **Catatan:** register EO belum otomatis membuat profil organizer. Sebelum testing, buat dulu baris di tabel `OrganizerProfiles` lewat `npx prisma studio` (langkahnya ada di PDF bagian A3).
 
