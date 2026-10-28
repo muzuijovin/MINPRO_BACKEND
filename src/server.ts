@@ -15,6 +15,7 @@ import { VoucherRoute } from "./features/eventVoucher/voucher.route";
 import { BankAccountsRoute } from "./features/bankAccounts/bankAccounts.route";
 import { TransactionsRoute } from "./features/transactions/transactions.route";
 import { PaymentProofsRoute } from "./features/paymentProofs/paymentProofs.route";
+import { OrganizerStatisticsRoute } from "./features/organizerStatistics/organizerStatistics.route";
 import { startTransactionsJob } from "./jobs/transactions.job";
 
 //
@@ -43,6 +44,7 @@ app.use(`${API_PREFIX}/vouchers`, VoucherRoute)
 app.use(`${API_PREFIX}/transactions`, TransactionsRoute)
 app.use(`${API_PREFIX}/bank-accounts`, BankAccountsRoute)
 app.use(`${API_PREFIX}/payment-proofs`, PaymentProofsRoute)
+app.use(`${API_PREFIX}/organizer/statistics`, OrganizerStatisticsRoute)
 
 
 //
