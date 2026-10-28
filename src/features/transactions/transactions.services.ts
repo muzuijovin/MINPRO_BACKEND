@@ -10,6 +10,17 @@ import {
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+// data transaksi yang dibutuhkan untuk mengembalikan kursi, voucher, coupon & poin
+type TransactionToRestore = {
+  id: string;
+  customerId: string;
+  eventId: string;
+  eventVoucherId: string | null;
+  userCouponId: string | null;
+  quantity: number;
+  pointUsed: number;
+};
+
 // batas waktu customer upload bukti bayar setelah checkout
 const PAYMENT_DEADLINE_MINUTES = 10;
 
@@ -313,17 +324,73 @@ export class TransactionsServices {
     });
   }
 
-  // dipakai saat transaksi REJECTED (nanti juga EXPIRED / CANCELLED): kembalikan kursi, voucher, coupon & poin
+  // dijalankan scheduler tiap menit:
+  // - tidak upload bukti bayar dalam 10 menit -> EXPIRED
+  // - EO tidak accept / reject dalam 3 hari -> CANCELLED
+  // kursi, voucher, coupon & poin dikembalikan ke customer
+  static async expireOverdueTransactions() {
+    const now = new Date();
+
+    const overduePayments = await prisma.transactions.findMany({
+      where: {
+        status: "WAITING_FOR_PAYMENT",
+        paymentDeadline: { lt: now },
+        deletedAt: null,
+      },
+    });
+
+    const overdueConfirmations = await prisma.transactions.findMany({
+      where: {
+        status: "WAITING_FOR_CONFIRMATION",
+        confirmationDeadline: { lt: now },
+        deletedAt: null,
+      },
+    });
+
+    let expired = 0;
+    for (const transaction of overduePayments) {
+      const isUpdated = await this.closeTransaction(transaction, "WAITING_FOR_PAYMENT", "EXPIRED", now);
+      if (isUpdated) expired++;
+    }
+
+    let cancelled = 0;
+    for (const transaction of overdueConfirmations) {
+      const isUpdated = await this.closeTransaction(transaction, "WAITING_FOR_CONFIRMATION", "CANCELLED", now);
+      if (isUpdated) cancelled++;
+    }
+
+    return { expired, cancelled };
+  }
+
+  // ubah status 1 transaksi + kembalikan resource nya, dibungkus 1 SQL transaction
+  private static async closeTransaction(
+    transaction: TransactionToRestore,
+    fromStatus: "WAITING_FOR_PAYMENT" | "WAITING_FOR_CONFIRMATION",
+    toStatus: "EXPIRED" | "CANCELLED",
+    now: Date,
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      // update pakai kondisi status biar tidak dobel, misal customer upload bukti tepat saat scheduler jalan
+      const updateTransaction = await tx.transactions.updateMany({
+        where: { id: transaction.id, status: fromStatus },
+        data:
+          toStatus === "EXPIRED"
+            ? { status: "EXPIRED", expiredAt: now }
+            : { status: "CANCELLED", cancelledAt: now },
+      });
+
+      if (updateTransaction.count === 0) return false;
+
+      await this.restoreTransactionResources(tx, transaction, now);
+
+      return true;
+    });
+  }
+
+  // dipakai saat transaksi REJECTED, EXPIRED & CANCELLED: kembalikan kursi, voucher, coupon & poin
   private static async restoreTransactionResources(
     tx: PrismaTx,
-    transaction: {
-      customerId: string;
-      eventId: string;
-      eventVoucherId: string | null;
-      userCouponId: string | null;
-      quantity: number;
-      pointUsed: number;
-    },
+    transaction: TransactionToRestore,
     now: Date,
   ) {
     await tx.events.update({

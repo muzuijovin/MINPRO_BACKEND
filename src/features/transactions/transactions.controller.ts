@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { AppError } from "../../errors/app.error";
 import { validate } from "../../validators/validate";
 import {
   transactionsConfirmSchema,
@@ -38,6 +39,20 @@ export class TransactionsController {
       success: true,
       message: "upload payment proof successfully",
       data: uploadPaymentProof,
+    });
+  }
+
+  // dipanggil cron-job.org tiap menit di production, dilindungi secret di header biar tidak bisa dipanggil sembarang orang
+  static async expireOverdueTransactions(req: Request, res: Response) {
+    if (!process.env.CRON_SECRET || req.headers["x-cron-secret"] !== process.env.CRON_SECRET)
+      throw new AppError(401, "Invalid cron secret");
+
+    const result = await TransactionsServices.expireOverdueTransactions();
+
+    res.status(200).json({
+      success: true,
+      message: "expire overdue transactions successfully",
+      data: result,
     });
   }
 
