@@ -1,9 +1,29 @@
 {
   "info": {
-    "name": "MINPRO - Transactions",
-    "description": "Urutan tes: jalankan folder dari atas ke bawah. Isi variable eoEmail, eoPassword, customerEmail, customerPassword, eventId dan cronSecret dulu di tab Variables. Token login berlaku 15 menit, kalau dapat 401 'jwt expired' jalankan ulang folder 0.",
+    "name": "MINPRO - Feature 1 (Event, Voucher, Transaksi, Review)",
+    "description": "Jalankan folder berurutan dari atas ke bawah. Isi dulu variable eoEmail, eoPassword, customerEmail, customerPassword dan cronSecret di tab Variables. Panduan lengkap: postman/panduan-testing-postman.pdf",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// tanggal dibuat relatif terhadap hari ini supaya collection selalu valid",
+          "const day = 24 * 60 * 60 * 1000;",
+          "const now = Date.now();",
+          "const startsAt = now + 30 * day;",
+          "pm.collectionVariables.set(\"eventStartsAt\", new Date(startsAt).toISOString());",
+          "pm.collectionVariables.set(\"eventEndsAt\", new Date(startsAt + 4 * 60 * 60 * 1000).toISOString());",
+          "pm.collectionVariables.set(\"voucherStartAt\", new Date(now - day).toISOString());",
+          "pm.collectionVariables.set(\"voucherEndAt\", new Date(now + 29 * day).toISOString());",
+          "pm.collectionVariables.set(\"voucherAfterEventAt\", new Date(now + 40 * day).toISOString());",
+          "pm.collectionVariables.set(\"pastDate\", new Date(now - day).toISOString());"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
@@ -11,29 +31,23 @@
     },
     {
       "key": "eoEmail",
-      "value": ""
+      "value": "eo.tester@mail.com"
     },
     {
       "key": "eoPassword",
-      "value": ""
+      "value": "Password123!"
     },
     {
       "key": "customerEmail",
-      "value": ""
+      "value": "customer.tester@mail.com"
     },
     {
       "key": "customerPassword",
-      "value": ""
-    },
-    {
-      "key": "eventId",
-      "value": "",
-      "description": "event PAID milik EO di atas, startsAt masih di masa depan, quota > 0"
+      "value": "Password123!"
     },
     {
       "key": "cronSecret",
-      "value": "",
-      "description": "sama dengan CRON_SECRET di .env"
+      "value": ""
     },
     {
       "key": "eoToken",
@@ -52,6 +66,38 @@
       "value": ""
     },
     {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "eventId",
+      "value": ""
+    },
+    {
+      "key": "eventSlug",
+      "value": ""
+    },
+    {
+      "key": "organizerId",
+      "value": ""
+    },
+    {
+      "key": "freeEventId",
+      "value": ""
+    },
+    {
+      "key": "freeEventSlug",
+      "value": ""
+    },
+    {
+      "key": "voucherId",
+      "value": ""
+    },
+    {
+      "key": "deleteVoucherId",
+      "value": ""
+    },
+    {
       "key": "bankAccountId",
       "value": ""
     },
@@ -62,11 +108,126 @@
     {
       "key": "rejectTransactionId",
       "value": ""
+    },
+    {
+      "key": "quotaBefore",
+      "value": ""
+    },
+    {
+      "key": "voucherQuotaBefore",
+      "value": ""
+    },
+    {
+      "key": "eventStartsAt",
+      "value": ""
+    },
+    {
+      "key": "eventEndsAt",
+      "value": ""
+    },
+    {
+      "key": "voucherStartAt",
+      "value": ""
+    },
+    {
+      "key": "voucherEndAt",
+      "value": ""
+    },
+    {
+      "key": "voucherAfterEventAt",
+      "value": ""
+    },
+    {
+      "key": "pastDate",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "0. Login",
+      "name": "00. Register (sekali saja)",
+      "item": [
+        {
+          "name": "Register EO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register/eo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register",
+                "eo"
+              ]
+            },
+            "description": "201 = baru dibuat. 400/409 = email sudah terdaftar (aman, lanjut saja).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"eo_tester\",\n  \"email\": \"{{eoEmail}}\",\n  \"password\": \"{{eoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201 / 400 / 409\", () => pm.expect([201,400,409]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register/customer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register",
+                "customer"
+              ]
+            },
+            "description": "201 = baru dibuat. 400/409 = email sudah terdaftar (aman, lanjut saja).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"customer_tester\",\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201 / 400 / 409\", () => pm.expect([201,400,409]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01. Login",
       "item": [
         {
           "name": "Login EO",
@@ -155,10 +316,2208 @@
       ]
     },
     {
-      "name": "1. Bank Accounts",
+      "name": "02. Kategori",
       "item": [
         {
-          "name": "✅ Create rekening (EO)",
+          "name": "✅ Kategori induk",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories?parentId=root",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "parentId",
+                  "value": "root"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"ada kategori\", () => pm.expect(data.length).to.be.above(0));",
+                  "pm.test(\"semua kategori induk (parentId null)\", () => pm.response.json().data.forEach((item) => pm.expect(item.parentId === null).to.be.true));",
+                  "pm.collectionVariables.set(\"categoryId\", data[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Semua kategori + search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories?search=a&limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "a"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"maksimal 5 data\", () => pm.expect(pm.response.json().data.length).to.be.at.most(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Tree kategori",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/tree",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "tree"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ limit 0",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories?limit=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Event",
+      "item": [
+        {
+          "name": "❌ Create - login sebagai customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "150000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - tanpa token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "150000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - PAID tapi harga 0",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - FREE tapi ada harga",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "FREE",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "50000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - tanggal mulai sudah lewat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "150000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{pastDate}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - selesai sebelum mulai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "150000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - judul kosong",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "150000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Create - tanpa cover image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "150000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Create event PAID (pilih file coverImage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Tab Body > baris coverImage > Select Files > pilih gambar jpg/png.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Konser Testing Transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "PAID",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "150000",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"eventId\", data.id);",
+                  "pm.collectionVariables.set(\"eventSlug\", data.slug);",
+                  "pm.collectionVariables.set(\"organizerId\", data.organizerId);",
+                  "pm.test(\"slug terbentuk dari judul\", () => pm.expect(data.slug).to.include(\"konser-testing-transaksi\"));",
+                  "pm.test(\"cover image terupload\", () => pm.expect(data.coverImageUrl).to.include(\"http\"));",
+                  "pm.test(\"quota 50\", () => pm.expect(data.quota).to.eql(50));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Create event FREE (pilih file coverImage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Tab Body > baris coverImage > Select Files > pilih gambar jpg/png.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Seminar Gratis Testing",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Event untuk testing alur transaksi",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "format",
+                  "value": "SPECTATOR",
+                  "type": "text"
+                },
+                {
+                  "key": "typePrice",
+                  "value": "FREE",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "quota",
+                  "value": "20",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "{{eventStartsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "endsAt",
+                  "value": "{{eventEndsAt}}",
+                  "type": "text"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"freeEventId\", data.id);",
+                  "pm.collectionVariables.set(\"freeEventSlug\", data.slug);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ List event (upcoming)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ada meta pagination\", () => pm.expect(pm.response.json().meta).to.have.property(\"totalEvents\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Search judul",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?search=Konser%20Testing&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Konser%20Testing"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"event yang baru dibuat ketemu\", () => pm.expect(pm.response.json().data.map((e) => e.id)).to.include(pm.collectionVariables.get(\"eventId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Filter PAID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?typePrice=PAID",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "typePrice",
+                  "value": "PAID"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua PAID\", () => pm.response.json().data.forEach((item) => pm.expect(item.typePrice === \"PAID\").to.be.true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Filter FREE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?typePrice=FREE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "typePrice",
+                  "value": "FREE"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"semua FREE\", () => pm.response.json().data.forEach((item) => pm.expect(item.typePrice === \"FREE\").to.be.true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Filter lokasi",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?location=Jakarta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "location",
+                  "value": "Jakarta"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Urut harga termahal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?sortBy=price&order=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "price"
+                },
+                {
+                  "key": "order",
+                  "value": "desc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const prices = pm.response.json().data.map((e) => Number(e.price));",
+                  "pm.test(\"urut turun\", () => pm.expect(prices).to.eql([...prices].sort((a, b) => b - a)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Event yang sudah lewat",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?time=past",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "time",
+                  "value": "past"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Daftar lokasi",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "locations"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Jakarta ada\", () => pm.expect(pm.response.json().data).to.include(\"Jakarta\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Detail event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"judul benar\", () => pm.expect(data.title).to.eql(\"Konser Testing Transaksi\"));",
+                  "pm.test(\"ada nama penyelenggara\", () => pm.expect(data.organizer).to.have.property(\"organizationName\"));",
+                  "pm.test(\"ada averageRating\", () => pm.expect(data).to.have.property(\"averageRating\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Detail slug tidak ada",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/slug-ngawur-123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "slug-ngawur-123"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Filter typePrice ngawur",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?typePrice=MAHAL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "typePrice",
+                  "value": "MAHAL"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Update deskripsi",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Deskripsi sudah diupdate lewat Postman\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Update jadi FREE tapi harga masih ada",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"typePrice\": \"FREE\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Update - login sebagai customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Dibajak\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Update - id tidak ada",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/id-ngawur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "id-ngawur"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"X\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04. Voucher",
+      "item": [
+        {
+          "name": "✅ Create voucher (huruf kecil jadi kapital)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"diskon10\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"voucherId\", data.id);",
+                  "pm.test(\"kode jadi DISKON10\", () => pm.expect(data.code).to.eql(\"DISKON10\"));",
+                  "pm.test(\"quota 5\", () => pm.expect(data.quota).to.eql(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Kode sama di event yang sama",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"DISKON10\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Kode ada spasi",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"DISKON 10\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Diskon 0%",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"NOL\",\n  \"discountPercentage\": 0,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Diskon 101%",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"LEBIH\",\n  \"discountPercentage\": 101,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Berakhir sebelum mulai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"TERBALIK\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherEndAt}}\",\n  \"endAt\": \"{{voucherStartAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Berakhir setelah event selesai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"KELAMAAN\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherAfterEventAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Event tidak ada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"id-ngawur\",\n  \"code\": \"NGAWUR\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Login sebagai customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"CUST\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ List voucher event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers?eventId={{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "{{eventId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"voucher ada\", () => pm.expect(pm.response.json().data.map((v) => v.id)).to.include(pm.collectionVariables.get(\"voucherId\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Detail voucher",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers/{{voucherId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers",
+                "{{voucherId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"kode DISKON10\", () => pm.expect(pm.response.json().data.code).to.eql(\"DISKON10\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Update quota jadi 10",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers/{{voucherId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers",
+                "{{voucherId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quota\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"quota 10\", () => pm.expect(pm.response.json().data.quota).to.eql(10));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Voucher tampil di detail event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"DISKON10 ada di eventVoucher\", () => pm.expect(pm.response.json().data.eventVoucher.map((v) => v.code)).to.include(\"DISKON10\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Create voucher untuk dihapus",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"code\": \"HAPUS1\",\n  \"discountPercentage\": 10,\n  \"quota\": 5,\n  \"startAt\": \"{{voucherStartAt}}\",\n  \"endAt\": \"{{voucherEndAt}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"deleteVoucherId\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Hapus voucher",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers/{{deleteVoucherId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers",
+                "{{deleteVoucherId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Detail voucher yang sudah dihapus",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers/{{deleteVoucherId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers",
+                "{{deleteVoucherId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05. Rekening Bank EO",
+      "item": [
+        {
+          "name": "✅ Create rekening",
           "request": {
             "method": "POST",
             "header": [
@@ -202,7 +2561,7 @@
           ]
         },
         {
-          "name": "❌ Create - nomor rekening ada huruf",
+          "name": "❌ Nomor rekening ada huruf",
           "request": {
             "method": "POST",
             "header": [
@@ -242,7 +2601,7 @@
           ]
         },
         {
-          "name": "❌ Create - nomor rekening dikirim number",
+          "name": "❌ Nomor rekening dikirim number",
           "request": {
             "method": "POST",
             "header": [
@@ -282,7 +2641,7 @@
           ]
         },
         {
-          "name": "❌ Create - field kosong",
+          "name": "❌ Field kosong",
           "request": {
             "method": "POST",
             "header": [
@@ -322,7 +2681,7 @@
           ]
         },
         {
-          "name": "❌ Create - login sebagai customer",
+          "name": "❌ Login sebagai customer",
           "request": {
             "method": "POST",
             "header": [
@@ -362,7 +2721,7 @@
           ]
         },
         {
-          "name": "❌ Create - tanpa token",
+          "name": "❌ Tanpa token",
           "request": {
             "method": "POST",
             "header": [
@@ -398,7 +2757,7 @@
           ]
         },
         {
-          "name": "✅ Get rekening saya (EO)",
+          "name": "✅ Rekening saya",
           "request": {
             "method": "GET",
             "header": [
@@ -425,7 +2784,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"ada minimal 1 rekening\", () => pm.expect(pm.response.json().data.length).to.be.above(0));"
+                  "pm.test(\"minimal 1 rekening\", () => pm.expect(pm.response.json().data.length).to.be.above(0));"
                 ]
               }
             }
@@ -474,7 +2833,7 @@
           ]
         },
         {
-          "name": "✅ Get rekening by event - rekening nonaktif tidak muncul",
+          "name": "✅ Rekening by event - yang nonaktif tidak muncul",
           "request": {
             "method": "GET",
             "header": [
@@ -502,15 +2861,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "const ids = pm.response.json().data.map((a) => a.id);",
-                  "pm.test(\"rekening nonaktif tidak ada\", () => pm.expect(ids).to.not.include(pm.collectionVariables.get(\"bankAccountId\")));"
+                  "pm.test(\"tidak ada\", () => pm.expect(pm.response.json().data.map((a) => a.id)).to.not.include(pm.collectionVariables.get(\"bankAccountId\")));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Aktifkan lagi rekening",
+          "name": "✅ Aktifkan lagi",
           "request": {
             "method": "PATCH",
             "header": [
@@ -551,7 +2909,7 @@
           ]
         },
         {
-          "name": "✅ Get rekening by event - rekening aktif muncul",
+          "name": "✅ Rekening by event - muncul lagi",
           "request": {
             "method": "GET",
             "header": [
@@ -579,15 +2937,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "const ids = pm.response.json().data.map((a) => a.id);",
-                  "pm.test(\"rekening aktif ada\", () => pm.expect(ids).to.include(pm.collectionVariables.get(\"bankAccountId\")));"
+                  "pm.test(\"ada\", () => pm.expect(pm.response.json().data.map((a) => a.id)).to.include(pm.collectionVariables.get(\"bankAccountId\")));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "❌ Update - id tidak ada",
+          "name": "❌ Update id tidak ada",
           "request": {
             "method": "PATCH",
             "header": [
@@ -628,7 +2985,7 @@
           ]
         },
         {
-          "name": "❌ Get rekening by event - event tidak ada",
+          "name": "❌ Rekening by event - event tidak ada",
           "request": {
             "method": "GET",
             "header": [
@@ -664,7 +3021,7 @@
       ]
     },
     {
-      "name": "2. Checkout",
+      "name": "06. Checkout",
       "item": [
         {
           "name": "❌ quantity 0",
@@ -707,7 +3064,7 @@
           ]
         },
         {
-          "name": "❌ quantity dikirim string",
+          "name": "❌ quantity string",
           "request": {
             "method": "POST",
             "header": [
@@ -787,7 +3144,7 @@
           ]
         },
         {
-          "name": "❌ login sebagai EO",
+          "name": "❌ Login sebagai EO",
           "request": {
             "method": "POST",
             "header": [
@@ -827,7 +3184,7 @@
           ]
         },
         {
-          "name": "❌ event tidak ada",
+          "name": "❌ Event tidak ada",
           "request": {
             "method": "POST",
             "header": [
@@ -867,7 +3224,7 @@
           ]
         },
         {
-          "name": "❌ rekening bukan milik EO event",
+          "name": "❌ Rekening salah",
           "request": {
             "method": "POST",
             "header": [
@@ -907,7 +3264,7 @@
           ]
         },
         {
-          "name": "❌ quantity melebihi sisa kursi",
+          "name": "❌ Melebihi sisa kursi",
           "request": {
             "method": "POST",
             "header": [
@@ -947,7 +3304,7 @@
           ]
         },
         {
-          "name": "❌ voucher tidak valid",
+          "name": "❌ Voucher tidak valid",
           "request": {
             "method": "POST",
             "header": [
@@ -987,7 +3344,7 @@
           ]
         },
         {
-          "name": "❌ coupon tidak valid",
+          "name": "❌ Coupon tidak valid",
           "request": {
             "method": "POST",
             "header": [
@@ -1027,7 +3384,7 @@
           ]
         },
         {
-          "name": "❌ poin melebihi tagihan / saldo",
+          "name": "❌ Poin terlalu banyak",
           "request": {
             "method": "POST",
             "header": [
@@ -1067,6 +3424,35 @@
           ]
         },
         {
+          "name": "Cek kuota event sebelum checkout",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"quotaBefore\", pm.response.json().data.quota);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "✅ Checkout 2 tiket",
           "request": {
             "method": "POST",
@@ -1089,7 +3475,6 @@
                 "transactions"
               ]
             },
-            "description": "Cek di DB / Prisma Studio: quota event berkurang 2.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 2\n}"
@@ -1105,11 +3490,164 @@
                   "const data = pm.response.json().data;",
                   "pm.collectionVariables.set(\"transactionId\", data.id);",
                   "pm.test(\"status transaksi WAITING_FOR_PAYMENT\", () => pm.expect(pm.response.json().data.status).to.eql(\"WAITING_FOR_PAYMENT\"));",
-                  "pm.test(\"subtotal = ticketPrice x 2\", () => pm.expect(Number(data.subtotal)).to.eql(Number(data.ticketPrice) * 2));",
-                  "pm.test(\"tanpa diskon finalAmount = subtotal\", () => pm.expect(Number(data.finalAmount)).to.eql(Number(data.subtotal)));",
-                  "pm.test(\"transactionCode diawali TRX-\", () => pm.expect(data.transactionCode).to.match(/^TRX-/));",
+                  "pm.test(\"subtotal = 2 x 150.000\", () => pm.expect(Number(data.subtotal)).to.eql(300000));",
+                  "pm.test(\"finalAmount = 300.000\", () => pm.expect(Number(data.finalAmount)).to.eql(300000));",
+                  "pm.test(\"kode diawali TRX-\", () => pm.expect(data.transactionCode).to.match(/^TRX-/));",
                   "const minutes = (new Date(data.paymentDeadline) - new Date(data.createdAt)) / 60000;",
-                  "pm.test(\"paymentDeadline 10 menit\", () => pm.expect(Math.round(minutes)).to.eql(10));"
+                  "pm.test(\"batas bayar 10 menit\", () => pm.expect(Math.round(minutes)).to.eql(10));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cek kuota event setelah checkout",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"kuota berkurang 2\", () => pm.expect(pm.response.json().data.quota).to.eql(Number(pm.collectionVariables.get(\"quotaBefore\")) - 2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Checkout event gratis",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{freeEventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"status transaksi PAID\", () => pm.expect(pm.response.json().data.status).to.eql(\"PAID\"));",
+                  "pm.test(\"finalAmount 0\", () => pm.expect(Number(data.finalAmount)).to.eql(0));",
+                  "pm.test(\"tiket langsung terbit\", () => pm.expect(data.tickets.length).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Event gratis pakai poin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{freeEventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1,\n  \"pointUsed\": 100\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Event gratis pakai voucher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{freeEventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 1,\n  \"eventVoucherId\": \"{{voucherId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -1118,10 +3656,10 @@
       ]
     },
     {
-      "name": "3. Upload Bukti Bayar",
+      "name": "07. Upload Bukti Bayar",
       "item": [
         {
-          "name": "❌ tanpa file",
+          "name": "❌ Tanpa file",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1159,7 +3697,7 @@
           ]
         },
         {
-          "name": "❌ login sebagai EO",
+          "name": "❌ Login sebagai EO",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1203,7 +3741,7 @@
           ]
         },
         {
-          "name": "❌ transaksi tidak ada",
+          "name": "❌ Transaksi tidak ada (pilih file)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1223,7 +3761,7 @@
                 "payment-proof"
               ]
             },
-            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "description": "Tab Body > paymentProof > Select Files.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1248,7 +3786,7 @@
           ]
         },
         {
-          "name": "✅ Upload bukti (pilih file jpg/png dulu)",
+          "name": "✅ Upload bukti (pilih file)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1268,7 +3806,7 @@
                 "payment-proof"
               ]
             },
-            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "description": "Tab Body > paymentProof > Select Files.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1291,14 +3829,14 @@
                   "pm.test(\"status transaksi WAITING_FOR_CONFIRMATION\", () => pm.expect(pm.response.json().data.status).to.eql(\"WAITING_FOR_CONFIRMATION\"));",
                   "pm.test(\"bukti tersimpan & PENDING\", () => pm.expect(data.paymentProofs[0].decision).to.eql(\"PENDING\"));",
                   "const days = (new Date(data.confirmationDeadline) - new Date(data.submittedProofAt)) / 86400000;",
-                  "pm.test(\"confirmationDeadline 3 hari\", () => pm.expect(Math.round(days)).to.eql(3));"
+                  "pm.test(\"batas konfirmasi 3 hari\", () => pm.expect(Math.round(days)).to.eql(3));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "❌ Upload ulang (status sudah bukan WAITING_FOR_PAYMENT)",
+          "name": "❌ Upload ulang (pilih file)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1318,7 +3856,7 @@
                 "payment-proof"
               ]
             },
-            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "description": "Tab Body > paymentProof > Select Files.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1343,7 +3881,7 @@
           ]
         },
         {
-          "name": "✅ Lihat bukti bayar (customer)",
+          "name": "✅ Lihat bukti (customer)",
           "request": {
             "method": "GET",
             "header": [
@@ -1378,7 +3916,7 @@
           ]
         },
         {
-          "name": "✅ Lihat bukti bayar (EO)",
+          "name": "✅ Lihat bukti (EO)",
           "request": {
             "method": "GET",
             "header": [
@@ -1412,7 +3950,7 @@
           ]
         },
         {
-          "name": "❌ Lihat bukti bayar - transaksi tidak ada",
+          "name": "❌ Lihat bukti - transaksi tidak ada",
           "request": {
             "method": "GET",
             "header": [
@@ -1448,7 +3986,7 @@
       ]
     },
     {
-      "name": "4. EO Accept",
+      "name": "08. EO Accept",
       "item": [
         {
           "name": "❌ decision PENDING",
@@ -1535,7 +4073,7 @@
           ]
         },
         {
-          "name": "❌ login sebagai customer",
+          "name": "❌ Login sebagai customer",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1615,7 +4153,7 @@
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
                   "const data = pm.response.json().data;",
                   "pm.test(\"status transaksi PAID\", () => pm.expect(pm.response.json().data.status).to.eql(\"PAID\"));",
-                  "pm.test(\"tiket terbit sejumlah quantity\", () => pm.expect(data.tickets.length).to.eql(data.quantity));",
+                  "pm.test(\"2 tiket terbit\", () => pm.expect(data.tickets.length).to.eql(2));",
                   "pm.test(\"bukti jadi ACCEPTED\", () => pm.expect(data.paymentProofs[0].decision).to.eql(\"ACCEPTED\"));"
                 ]
               }
@@ -1623,7 +4161,7 @@
           ]
         },
         {
-          "name": "❌ Confirm ulang (sudah PAID)",
+          "name": "❌ Konfirmasi ulang",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1667,10 +4205,68 @@
       ]
     },
     {
-      "name": "5. EO Reject (kursi dikembalikan)",
+      "name": "09. EO Reject + voucher (semua dikembalikan)",
       "item": [
         {
-          "name": "✅ Checkout 3 tiket",
+          "name": "Cek kuota event sebelum",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"quotaBefore\", pm.response.json().data.quota);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cek kuota voucher sebelum",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers/{{voucherId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers",
+                "{{voucherId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"voucherQuotaBefore\", pm.response.json().data.quota);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Checkout 3 tiket pakai voucher 10%",
           "request": {
             "method": "POST",
             "header": [
@@ -1692,10 +4288,9 @@
                 "transactions"
               ]
             },
-            "description": "Catat quota event di DB sebelum & sesudah request ini (harus berkurang 3).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 3\n}"
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"bankAccountId\": \"{{bankAccountId}}\",\n  \"quantity\": 3,\n  \"eventVoucherId\": \"{{voucherId}}\"\n}"
             }
           },
           "event": [
@@ -1705,14 +4300,76 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set(\"rejectTransactionId\", pm.response.json().data.id);"
+                  "const data = pm.response.json().data;",
+                  "pm.collectionVariables.set(\"rejectTransactionId\", data.id);",
+                  "pm.test(\"subtotal 450.000\", () => pm.expect(Number(data.subtotal)).to.eql(450000));",
+                  "pm.test(\"diskon voucher 45.000\", () => pm.expect(Number(data.voucherDiscount)).to.eql(45000));",
+                  "pm.test(\"finalAmount 405.000\", () => pm.expect(Number(data.finalAmount)).to.eql(405000));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Upload bukti (pilih file dulu)",
+          "name": "Kuota event berkurang 3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"kuota -3\", () => pm.expect(pm.response.json().data.quota).to.eql(Number(pm.collectionVariables.get(\"quotaBefore\")) - 3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kuota voucher berkurang 1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers/{{voucherId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers",
+                "{{voucherId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"kuota voucher -1\", () => pm.expect(pm.response.json().data.quota).to.eql(Number(pm.collectionVariables.get(\"voucherQuotaBefore\")) - 1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Upload bukti (pilih file)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1732,7 +4389,7 @@
                 "payment-proof"
               ]
             },
-            "description": "Pilih file gambar di tab Body > paymentProof.",
+            "description": "Tab Body > paymentProof > Select Files.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1781,7 +4438,6 @@
                 "confirm"
               ]
             },
-            "description": "Cek di DB: quota event naik lagi 3.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"decision\": \"REJECTED\"\n}"
@@ -1802,14 +4458,72 @@
               }
             }
           ]
+        },
+        {
+          "name": "Kuota event kembali",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"kuota kembali seperti sebelum checkout\", () => pm.expect(pm.response.json().data.quota).to.eql(Number(pm.collectionVariables.get(\"quotaBefore\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kuota voucher kembali",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vouchers/{{voucherId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vouchers",
+                "{{voucherId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"kuota voucher kembali\", () => pm.expect(pm.response.json().data.quota).to.eql(Number(pm.collectionVariables.get(\"voucherQuotaBefore\"))));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "6. Cron Job Expire",
+      "name": "10. Cron Job Expire",
       "item": [
         {
-          "name": "❌ tanpa secret",
+          "name": "❌ Tanpa secret",
           "request": {
             "method": "POST",
             "header": [],
@@ -1838,7 +4552,7 @@
           ]
         },
         {
-          "name": "❌ secret salah",
+          "name": "❌ Secret salah",
           "request": {
             "method": "POST",
             "header": [
@@ -1872,7 +4586,7 @@
           ]
         },
         {
-          "name": "✅ secret benar",
+          "name": "✅ Secret benar",
           "request": {
             "method": "POST",
             "header": [
@@ -1891,8 +4605,7 @@
                 "jobs",
                 "expire"
               ]
-            },
-            "description": "Tes expire: checkout 1 tiket tanpa upload bukti, tunggu > 10 menit, lalu jalankan ini. expired harus >= 1 (kalau npm run dev menyala, node-cron mungkin sudah duluan meng-expire)."
+            }
           },
           "event": [
             {
@@ -1902,7 +4615,7 @@
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
                   "const data = pm.response.json().data;",
-                  "pm.test(\"ada jumlah expired & cancelled\", () => { pm.expect(data).to.have.property(\"expired\"); pm.expect(data).to.have.property(\"cancelled\"); });"
+                  "pm.test(\"ada expired & cancelled\", () => pm.expect(data).to.have.property(\"expired\") && pm.expect(data).to.have.property(\"cancelled\"));"
                 ]
               }
             }
@@ -1911,10 +4624,10 @@
       ]
     },
     {
-      "name": "7. Riwayat Transaksi Customer",
+      "name": "11. Riwayat Transaksi Customer",
       "item": [
         {
-          "name": "✅ Semua riwayat saya",
+          "name": "✅ Semua riwayat",
           "request": {
             "method": "GET",
             "header": [
@@ -1940,17 +4653,16 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"semua transaksi milik customer ini\", () => pm.response.json().data.forEach((item) => pm.expect(item.customerId === pm.collectionVariables.get(\"customerId\")).to.be.true));",
-                  "pm.test(\"ada data event\", () => pm.expect(pm.response.json().data[0].events).to.have.property(\"title\"));",
-                  "pm.test(\"ada meta pagination\", () => pm.expect(pm.response.json().meta).to.have.property(\"totalPage\"));",
-                  "pm.test(\"terbaru di atas\", () => { const d = pm.response.json().data; if (d.length > 1) pm.expect(new Date(d[0].createdAt) >= new Date(d[1].createdAt)).to.be.true; });"
+                  "pm.test(\"semua milik customer ini\", () => pm.response.json().data.forEach((item) => pm.expect(item.customerId === pm.collectionVariables.get(\"customerId\")).to.be.true));",
+                  "pm.test(\"ada info event\", () => pm.expect(pm.response.json().data[0].events).to.have.property(\"title\"));",
+                  "pm.test(\"ada meta\", () => pm.expect(pm.response.json().meta).to.have.property(\"totalPage\"));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Filter status PAID",
+          "name": "✅ Filter PAID",
           "request": {
             "method": "GET",
             "header": [
@@ -1965,7 +4677,13 @@
                 "{{baseUrl}}"
               ],
               "path": [
-                "transactions?status=PAID"
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PAID"
+                }
               ]
             }
           },
@@ -1976,14 +4694,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"semua status PAID\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"PAID\").to.be.true));"
+                  "pm.test(\"semua PAID\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"PAID\").to.be.true));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Filter status REJECTED",
+          "name": "✅ Filter REJECTED",
           "request": {
             "method": "GET",
             "header": [
@@ -1998,7 +4716,13 @@
                 "{{baseUrl}}"
               ],
               "path": [
-                "transactions?status=REJECTED"
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "REJECTED"
+                }
               ]
             }
           },
@@ -2009,14 +4733,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"semua status REJECTED\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"REJECTED\").to.be.true));"
+                  "pm.test(\"semua REJECTED\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"REJECTED\").to.be.true));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Search kode transaksi",
+          "name": "✅ Search kode",
           "request": {
             "method": "GET",
             "header": [
@@ -2031,7 +4755,13 @@
                 "{{baseUrl}}"
               ],
               "path": [
-                "transactions?search=TRX"
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "TRX"
+                }
               ]
             }
           },
@@ -2064,7 +4794,17 @@
                 "{{baseUrl}}"
               ],
               "path": [
-                "transactions?page=1&limit=2"
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "2"
+                }
               ]
             }
           },
@@ -2075,15 +4815,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"maksimal 2 data\", () => pm.expect(pm.response.json().data.length).to.be.at.most(2));",
-                  "pm.test(\"meta.limit 2\", () => pm.expect(pm.response.json().meta.limit).to.eql(2));"
+                  "pm.test(\"maksimal 2\", () => pm.expect(pm.response.json().data.length).to.be.at.most(2));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Urut finalAmount termurah",
+          "name": "✅ Urut termurah",
           "request": {
             "method": "GET",
             "header": [
@@ -2098,7 +4837,17 @@
                 "{{baseUrl}}"
               ],
               "path": [
-                "transactions?sortBy=finalAmount&order=asc"
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "finalAmount"
+                },
+                {
+                  "key": "order",
+                  "value": "asc"
+                }
               ]
             }
           },
@@ -2109,7 +4858,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "const amounts = pm.response.json().data.map((t) => Number(t.finalAmount));",
+                  "const amounts = pm.response.json().data.map((x) => Number(x.finalAmount));",
                   "pm.test(\"urut naik\", () => pm.expect(amounts).to.eql([...amounts].sort((a, b) => a - b)));"
                 ]
               }
@@ -2117,7 +4866,7 @@
           ]
         },
         {
-          "name": "❌ status ngawur",
+          "name": "❌ Status ngawur",
           "request": {
             "method": "GET",
             "header": [
@@ -2132,7 +4881,13 @@
                 "{{baseUrl}}"
               ],
               "path": [
-                "transactions?status=LUNAS"
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "LUNAS"
+                }
               ]
             }
           },
@@ -2164,7 +4919,13 @@
                 "{{baseUrl}}"
               ],
               "path": [
-                "transactions?limit=0"
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "0"
+                }
               ]
             }
           },
@@ -2181,7 +4942,7 @@
           ]
         },
         {
-          "name": "❌ login sebagai EO",
+          "name": "❌ Login sebagai EO",
           "request": {
             "method": "GET",
             "header": [
@@ -2213,7 +4974,7 @@
           ]
         },
         {
-          "name": "❌ tanpa token",
+          "name": "❌ Tanpa token",
           "request": {
             "method": "GET",
             "header": [],
@@ -2242,10 +5003,10 @@
       ]
     },
     {
-      "name": "8. Detail Transaksi",
+      "name": "12. Detail Transaksi",
       "item": [
         {
-          "name": "✅ Detail (customer pemilik)",
+          "name": "✅ Detail (customer)",
           "request": {
             "method": "GET",
             "header": [
@@ -2275,15 +5036,15 @@
                   "const data = pm.response.json().data;",
                   "pm.test(\"ada info event\", () => pm.expect(data.events).to.have.property(\"title\"));",
                   "pm.test(\"ada rekening tujuan\", () => pm.expect(data.bankEo).to.have.property(\"accountNumber\"));",
-                  "pm.test(\"transaksi PAID dari folder 4 punya tiket\", () => pm.expect(data.tickets.length).to.eql(data.quantity));",
-                  "pm.test(\"ada riwayat bukti bayar\", () => pm.expect(data.paymentProofs.length).to.be.above(0));"
+                  "pm.test(\"2 tiket\", () => pm.expect(data.tickets.length).to.eql(2));",
+                  "pm.test(\"ada bukti bayar\", () => pm.expect(data.paymentProofs.length).to.be.above(0));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Detail (EO pemilik event)",
+          "name": "✅ Detail (EO)",
           "request": {
             "method": "GET",
             "header": [
@@ -2316,7 +5077,7 @@
           ]
         },
         {
-          "name": "✅ Detail transaksi yang di-reject",
+          "name": "✅ Detail transaksi REJECTED",
           "request": {
             "method": "GET",
             "header": [
@@ -2344,7 +5105,7 @@
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"status transaksi REJECTED\", () => pm.expect(pm.response.json().data.status).to.eql(\"REJECTED\"));",
-                  "pm.test(\"tidak ada tiket\", () => pm.expect(pm.response.json().data.tickets.length).to.eql(0));"
+                  "pm.test(\"ada kode voucher\", () => pm.expect(pm.response.json().data.eventVoucher.code).to.eql(\"DISKON10\"));"
                 ]
               }
             }
@@ -2384,7 +5145,7 @@
           ]
         },
         {
-          "name": "❌ tanpa token",
+          "name": "❌ Tanpa token",
           "request": {
             "method": "GET",
             "header": [],
@@ -2414,7 +5175,7 @@
       ]
     },
     {
-      "name": "9. Transaksi EO (kelola & peserta)",
+      "name": "13. Transaksi EO (kelola & peserta)",
       "item": [
         {
           "name": "✅ Semua transaksi event saya",
@@ -2444,8 +5205,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"ada data peserta\", () => pm.expect(pm.response.json().data[0].users).to.have.property(\"username\"));",
-                  "pm.test(\"ada meta pagination\", () => pm.expect(pm.response.json().meta).to.have.property(\"totalTransactions\"));"
+                  "pm.test(\"ada data peserta\", () => pm.expect(pm.response.json().data[0].users).to.have.property(\"username\"));"
                 ]
               }
             }
@@ -2468,7 +5228,13 @@
               ],
               "path": [
                 "transactions",
-                "organizer?status=WAITING_FOR_CONFIRMATION"
+                "organizer"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "WAITING_FOR_CONFIRMATION"
+                }
               ]
             }
           },
@@ -2486,7 +5252,7 @@
           ]
         },
         {
-          "name": "✅ Daftar peserta 1 event (PAID)",
+          "name": "✅ Daftar peserta 1 event",
           "request": {
             "method": "GET",
             "header": [
@@ -2502,7 +5268,17 @@
               ],
               "path": [
                 "transactions",
-                "organizer?status=PAID&eventId={{eventId}}"
+                "organizer"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PAID"
+                },
+                {
+                  "key": "eventId",
+                  "value": "{{eventId}}"
+                }
               ]
             }
           },
@@ -2513,15 +5289,15 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"semua PAID & event yang dipilih\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"PAID\" && item.eventId === pm.collectionVariables.get(\"eventId\")).to.be.true));",
-                  "pm.test(\"ada nama, jumlah tiket & total bayar\", () => { const t = pm.response.json().data[0]; pm.expect(t.users.username).to.be.a(\"string\"); pm.expect(t.quantity).to.be.a(\"number\"); pm.expect(t).to.have.property(\"finalAmount\"); });"
+                  "pm.test(\"PAID & event yang dipilih\", () => pm.response.json().data.forEach((item) => pm.expect(item.status === \"PAID\" && item.eventId === pm.collectionVariables.get(\"eventId\")).to.be.true));",
+                  "pm.test(\"ada nama, jumlah tiket, total bayar\", () => pm.expect(pm.response.json().data[0]).to.include.keys(\"users\", \"quantity\", \"finalAmount\"));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Search kode transaksi",
+          "name": "✅ Search username",
           "request": {
             "method": "GET",
             "header": [
@@ -2531,13 +5307,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/transactions/organizer?search=TRX",
+              "raw": "{{baseUrl}}/transactions/organizer?search=customer_tester",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "transactions",
-                "organizer?search=TRX"
+                "organizer"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "customer_tester"
+                }
               ]
             }
           },
@@ -2554,7 +5336,7 @@
           ]
         },
         {
-          "name": "❌ login sebagai customer",
+          "name": "❌ Login sebagai customer",
           "request": {
             "method": "GET",
             "header": [
@@ -2587,7 +5369,7 @@
           ]
         },
         {
-          "name": "❌ status ngawur",
+          "name": "❌ Status ngawur",
           "request": {
             "method": "GET",
             "header": [
@@ -2603,7 +5385,13 @@
               ],
               "path": [
                 "transactions",
-                "organizer?status=LUNAS"
+                "organizer"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "LUNAS"
+                }
               ]
             }
           },
@@ -2622,10 +5410,10 @@
       ]
     },
     {
-      "name": "10. Statistik EO",
+      "name": "14. Statistik EO",
       "item": [
         {
-          "name": "✅ Default (per bulan tahun ini)",
+          "name": "✅ Default (per bulan)",
           "request": {
             "method": "GET",
             "header": [
@@ -2654,9 +5442,9 @@
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
                   "const data = pm.response.json().data;",
                   "pm.test(\"12 bulan\", () => pm.expect(data.chart.data.length).to.eql(12));",
-                  "pm.test(\"ada summary\", () => { pm.expect(data.summary).to.have.property(\"ticketsSold\"); pm.expect(data.summary).to.have.property(\"revenue\"); });",
                   "pm.test(\"summary.transactions = jumlah PAID\", () => pm.expect(data.summary.transactions).to.eql(data.transactionsByStatus.PAID || 0));",
-                  "pm.test(\"ada penjualan dari folder 4\", () => pm.expect(data.summary.ticketsSold).to.be.at.least(2));"
+                  "pm.test(\"tiket terjual minimal 3 (2 berbayar + 1 gratis)\", () => pm.expect(data.summary.ticketsSold).to.be.at.least(3));",
+                  "pm.test(\"pendapatan minimal 300.000\", () => pm.expect(data.summary.revenue).to.be.at.least(300000));"
                 ]
               }
             }
@@ -2679,7 +5467,21 @@
               ],
               "path": [
                 "organizer",
-                "statistics?groupBy=day&year=2026&month=2"
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "groupBy",
+                  "value": "day"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "month",
+                  "value": "2"
+                }
               ]
             }
           },
@@ -2690,9 +5492,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "const data = pm.response.json().data.chart.data;",
-                  "pm.test(\"28 hari\", () => pm.expect(data.length).to.eql(28));",
-                  "pm.test(\"label pertama 2026-02-01\", () => pm.expect(data[0].label).to.eql(\"2026-02-01\"));"
+                  "const chart = pm.response.json().data.chart.data;",
+                  "pm.test(\"28 hari\", () => pm.expect(chart.length).to.eql(28));",
+                  "pm.test(\"label pertama 2026-02-01\", () => pm.expect(chart[0].label).to.eql(\"2026-02-01\"));"
                 ]
               }
             }
@@ -2715,7 +5517,13 @@
               ],
               "path": [
                 "organizer",
-                "statistics?groupBy=day"
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "groupBy",
+                  "value": "day"
+                }
               ]
             }
           },
@@ -2726,8 +5534,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "const total = pm.response.json().data.chart.data.reduce((sum, d) => sum + d.ticketsSold, 0);",
-                  "pm.test(\"penjualan hari ini ikut terhitung\", () => pm.expect(total).to.be.at.least(2));"
+                  "const total = pm.response.json().data.chart.data.reduce((s, d) => s + d.ticketsSold, 0);",
+                  "pm.test(\"penjualan hari ini ikut terhitung\", () => pm.expect(total).to.be.at.least(3));"
                 ]
               }
             }
@@ -2750,7 +5558,13 @@
               ],
               "path": [
                 "organizer",
-                "statistics?groupBy=year"
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "groupBy",
+                  "value": "year"
+                }
               ]
             }
           },
@@ -2761,15 +5575,15 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "const data = pm.response.json().data.chart.data;",
-                  "pm.test(\"label terakhir tahun sekarang\", () => pm.expect(data[data.length - 1].label).to.eql(String(new Date().getFullYear())));"
+                  "const chart = pm.response.json().data.chart.data;",
+                  "pm.test(\"label terakhir tahun sekarang\", () => pm.expect(chart[chart.length - 1].label).to.eql(String(new Date().getFullYear())));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "✅ Statistik 1 event",
+          "name": "✅ Statistik event berbayar saja",
           "request": {
             "method": "GET",
             "header": [
@@ -2785,7 +5599,13 @@
               ],
               "path": [
                 "organizer",
-                "statistics?eventId={{eventId}}"
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "{{eventId}}"
+                }
               ]
             }
           },
@@ -2796,7 +5616,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"tiket terjual minimal 2\", () => pm.expect(pm.response.json().data.summary.ticketsSold).to.be.at.least(2));"
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"2 tiket\", () => pm.expect(data.summary.ticketsSold).to.be.at.least(2));",
+                  "pm.test(\"transaksi REJECTED terhitung di status\", () => pm.expect(data.transactionsByStatus.REJECTED).to.be.at.least(1));"
                 ]
               }
             }
@@ -2819,7 +5641,13 @@
               ],
               "path": [
                 "organizer",
-                "statistics?groupBy=week"
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "groupBy",
+                  "value": "week"
+                }
               ]
             }
           },
@@ -2852,7 +5680,17 @@
               ],
               "path": [
                 "organizer",
-                "statistics?groupBy=day&month=13"
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "groupBy",
+                  "value": "day"
+                },
+                {
+                  "key": "month",
+                  "value": "13"
+                }
               ]
             }
           },
@@ -2869,7 +5707,7 @@
           ]
         },
         {
-          "name": "❌ event bukan milik EO / tidak ada",
+          "name": "❌ Event tidak ada",
           "request": {
             "method": "GET",
             "header": [
@@ -2885,7 +5723,13 @@
               ],
               "path": [
                 "organizer",
-                "statistics?eventId=id-ngawur"
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "id-ngawur"
+                }
               ]
             }
           },
@@ -2902,7 +5746,7 @@
           ]
         },
         {
-          "name": "❌ login sebagai customer",
+          "name": "❌ Login sebagai customer",
           "request": {
             "method": "GET",
             "header": [
@@ -2929,6 +5773,602 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "15. Review",
+      "item": [
+        {
+          "name": "❌ Review sebelum event selesai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "description": "SETELAH request ini: buka Prisma Studio, ubah startsAt & endsAt event 'Konser Testing Transaksi' ke tanggal kemarin, lalu lanjut request berikutnya.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"rating\": 5,\n  \"comment\": \"Belum mulai sudah review\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Rating 6",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"rating\": 6,\n  \"comment\": \"Mantap\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Rating 0",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"rating\": 0,\n  \"comment\": \"Jelek\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Komentar kosong",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"rating\": 5,\n  \"comment\": \"\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Login sebagai EO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"rating\": 5,\n  \"comment\": \"Review sendiri\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Event tidak ada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"id-ngawur\",\n  \"rating\": 5,\n  \"comment\": \"Mantap\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Review (setelah event diubah jadi selesai)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "description": "Pastikan startsAt & endsAt event sudah diubah ke kemarin di Prisma Studio.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"rating\": 5,\n  \"comment\": \"Acaranya seru banget, recommended!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"rating 5\", () => pm.expect(data.rating).to.eql(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Review kedua di event yang sama",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"rating\": 4,\n  \"comment\": \"Review lagi\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Review per event (tanpa login)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reviews?eventId={{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "{{eventId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const meta = pm.response.json().meta;",
+                  "pm.test(\"1 review\", () => pm.expect(meta.totalReviews).to.eql(1));",
+                  "pm.test(\"rata-rata 5\", () => pm.expect(meta.averageRating).to.eql(5));",
+                  "pm.test(\"ada nama customer\", () => pm.expect(pm.response.json().data[0].users).to.have.property(\"username\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Review per EO (profil EO)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reviews?organizerId={{organizerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "organizerId",
+                  "value": "{{organizerId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"minimal 1 review\", () => pm.expect(pm.response.json().meta.totalReviews).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Rating tampil di detail event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "pm.test(\"averageRating 5\", () => pm.expect(data.averageRating).to.eql(5));",
+                  "pm.test(\"totalReviews 1\", () => pm.expect(data.totalReviews).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ limit 0",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reviews?limit=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "16. Hapus Event",
+      "item": [
+        {
+          "name": "❌ Hapus - login sebagai customer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{freeEventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{freeEventId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Hapus - id tidak ada",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/id-ngawur",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "id-ngawur"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "✅ Hapus event gratis",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{eoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{freeEventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{freeEventId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "❌ Detail event yang sudah dihapus",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{freeEventSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{freeEventSlug}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
                 ]
               }
             }
