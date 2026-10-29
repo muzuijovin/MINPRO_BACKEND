@@ -8,6 +8,7 @@ import { validate } from '../../validators/validate';
 import { AuthsService } from './auths.service';
 
 export class AuthController {
+  // FEATURE 2 - NOMOR 1: Registrasi akun Customer
   static async registerForCustomer(req: Request, res: Response) {
     const { body } = validate(registerUserSchema, { body: req.body });
 
@@ -22,6 +23,7 @@ export class AuthController {
     });
   }
 
+  // FEATURE 2 - NOMOR 1: Registrasi akun Event Organizer (EO)
   static async registerForEo(req: Request, res: Response) {
     const { body } = validate(registerUserSchema, { body: req?.body });
 
@@ -33,6 +35,7 @@ export class AuthController {
     });
   }
 
+  // FEATURE 2 - NOMOR 1: Login Customer dan EO
   static async login(req: Request, res: Response) {
     const { body } = validate(loginUserSchema, { body: req.body });
 
@@ -55,6 +58,7 @@ export class AuthController {
     });
   }
 
+  // FEATURE 2 - NOMOR 1: Logout dan menghapus cookie autentikasi
   static async logout(req: Request, res: Response) {
     // opsi harus sama dengan waktu cookie dibuat di login, kalau beda browser tidak menghapusnya
     res.clearCookie('token', {
@@ -71,6 +75,7 @@ export class AuthController {
     });
   }
 
+  // FEATURE 2 - NOMOR 1: Memeriksa sesi login Customer atau EO
   static async me(req: Request, res: Response) {
     const { payload } = res?.locals;
 
@@ -83,6 +88,7 @@ export class AuthController {
     });
   }
 
+  // FEATURE 2 - NOMOR 2: Mengubah password akun Customer atau EO
   static async setPassword(req: Request, res: Response) {
     const { body, params } = validate(setPasswordUserSchema, {
       body: req.body,

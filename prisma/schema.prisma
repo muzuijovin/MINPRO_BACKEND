@@ -61,10 +61,10 @@ model CustomerProfiles {
   userId String @unique
   users  Users  @relation(fields: [userId], references: [id])
 
-  fullname    String   @db.VarChar(100)
-  phoneNumber Int
-  avatarUrl   String   @db.VarChar(500)
-  dateOfBirth DateTime?
+  fullname     String   @db.VarChar(100)
+  phoneNumber  String  @db.VarChar(20)
+  avatarUrl    String   @db.VarChar(500)
+  dateOfBirth  DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
