@@ -73,6 +73,19 @@ export class TransactionsServices {
 
     if (!findEventById) throw new AppError(404, "Event not found");
 
+    // 1 akun cuma boleh punya 1 transaksi aktif per event, yang REJECTED / EXPIRED / CANCELLED boleh checkout ulang
+    const findActiveTransaction = await prisma.transactions.findFirst({
+      where: {
+        customerId,
+        eventId: body.eventId,
+        deletedAt: null,
+        status: { in: ["WAITING_FOR_PAYMENT", "WAITING_FOR_CONFIRMATION", "PAID"] },
+      },
+    });
+
+    if (findActiveTransaction)
+      throw new AppError(409, "You already have an active transaction for this event");
+
     // tiket tidak bisa dibeli kalau event sudah mulai / lewat
     if (findEventById.startsAt && findEventById.startsAt <= now)
       throw new AppError(400, "Event has already started");
