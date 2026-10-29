@@ -1,13 +1,13 @@
-import { prisma } from "../../config/prisma-cllient.config";
-import { AppError } from "../../errors/app.error";
-import { Prisma } from "../../generated/prisma/client";
+import { prisma } from '../../config/prisma-client.config';
+import { AppError } from '../../errors/app.error';
+import { Prisma } from '../../generated/prisma/client';
 import {
   VoucherCreateSchema,
   VoucherDeletedSchema,
   VoucherGetDetailSchema,
   VoucherGetSchema,
   VoucherUpdatedSchema,
-} from "../../validatiors/voucher.validator";
+} from '../../validatiors/voucher.validator';
 
 export class VoucherServices {
   static async createVoucher({ body }: VoucherCreateSchema) {
@@ -53,7 +53,7 @@ export class VoucherServices {
     if (query?.eventId) where.eventId = query.eventId;
 
     if (query?.search) {
-      where.code = { contains: query.search, mode: "insensitive" };
+      where.code = { contains: query.search, mode: 'insensitive' };
     }
 
     // findMany & count dijalankan barengan biar lebih cepat
@@ -72,7 +72,7 @@ export class VoucherServices {
           },
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: 'desc',
         },
       }),
       prisma.eventVoucher.count({ where }),
@@ -106,7 +106,7 @@ export class VoucherServices {
       },
     });
 
-    if (!voucher) throw new AppError(404, "id voucher not found");
+    if (!voucher) throw new AppError(404, 'id voucher not found');
 
     return voucher;
   }
@@ -120,7 +120,7 @@ export class VoucherServices {
       },
     });
 
-    if (!findVoucherById) throw new AppError(404, "id voucher not found");
+    if (!findVoucherById) throw new AppError(404, 'id voucher not found');
 
     // soft delete + dinonaktifkan, biar voucher yang sudah dihapus pasti tidak bisa dipakai lagi
     const deleteData = await prisma.eventVoucher.update({
@@ -148,14 +148,16 @@ export class VoucherServices {
       },
     });
 
-    if (!findVoucherById) throw new AppError(404, "id voucher not found");
+    if (!findVoucherById) throw new AppError(404, 'id voucher not found');
 
     // validasi gabungan data lama + data baru (misal cuma kirim endAt, tetap dicek terhadap startAt lama)
-    const startAt = body?.startAt ? new Date(body.startAt) : findVoucherById.startAt;
+    const startAt = body?.startAt
+      ? new Date(body.startAt)
+      : findVoucherById.startAt;
     const endAt = body?.endAt ? new Date(body.endAt) : findVoucherById.endAt;
 
     if (endAt <= startAt)
-      throw new AppError(422, "End date must be after start date");
+      throw new AppError(422, 'End date must be after start date');
 
     this.validateAgainstEvent(endAt, findVoucherById.events.endsAt);
 
@@ -199,7 +201,10 @@ export class VoucherServices {
   // voucher tidak boleh berlaku setelah event selesai (kalau event belum punya endsAt, skip)
   static validateAgainstEvent(endAt: Date, eventEndsAt: Date | null) {
     if (eventEndsAt && endAt > eventEndsAt)
-      throw new AppError(422, "Voucher end date cannot be after the event ends");
+      throw new AppError(
+        422,
+        'Voucher end date cannot be after the event ends',
+      );
   }
 
   // cek duplikat kode di event yang sama, termasuk voucher yang sudah di soft delete
@@ -212,6 +217,9 @@ export class VoucherServices {
     });
 
     if (findVoucherByCode)
-      throw new AppError(409, `voucher code ${code} already exists for this event`);
+      throw new AppError(
+        409,
+        `voucher code ${code} already exists for this event`,
+      );
   }
 }
