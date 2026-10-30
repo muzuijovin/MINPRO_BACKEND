@@ -277,7 +277,7 @@ model OrganizerBankAccounts {
   organizer OrganizerProfiles @relation(fields: [organizerId], references: [id])
 
   bankName String @db.VarChar(50)
-  accountNumber Int
+  accountNumber String @db.VarChar(50)
   accountHolder String @db.VarChar(100)
   isActive Boolean @default(false)
 
