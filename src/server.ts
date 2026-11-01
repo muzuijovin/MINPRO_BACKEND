@@ -17,6 +17,7 @@ import { AuthsRoute } from "./features/auths/auths.route";
 // ==========================================
 import { ProfilesRoute } from "./features/profiles/profiles.route";
 import { PointsRoute } from "./features/feature-2/points/points.route";
+import { OrganizerBankAccountsRoute } from "./features/organizer-bank-accounts/organizer-bank-accounts.route";
 import cookieParser from "cookie-parser";
 
 // ==========================================
@@ -51,6 +52,9 @@ app.use(`${API_PREFIX}/auth`, AuthsRoute);
 // Customer & EO Profile Routes
 // ==========================================
 app.use(`${API_PREFIX}/profiles`, ProfilesRoute);
+
+// FEATURE 2 - NOMOR 2: Organizer Bank Accounts
+app.use(`${API_PREFIX}/organizer-bank-accounts`, OrganizerBankAccountsRoute);
 
 // ==========================================
 // GLENN - FEATURE 2 NOMOR 1
