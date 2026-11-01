@@ -2,13 +2,13 @@ import {
   registerUserSchema,
   loginUserSchema,
   setPasswordUserSchema,
+  changePasswordUserSchema,
 } from '../../validators/auths.validator';
 import { Request, Response } from 'express';
 import { validate } from '../../validators/validate';
 import { AuthsService } from './auths.service';
 
 export class AuthController {
-  // FEATURE 2 - NOMOR 1: Registrasi akun Customer
   static async registerForCustomer(req: Request, res: Response) {
     const { body } = validate(registerUserSchema, { body: req.body });
 
@@ -23,7 +23,6 @@ export class AuthController {
     });
   }
 
-  // FEATURE 2 - NOMOR 1: Registrasi akun Event Organizer (EO)
   static async registerForEo(req: Request, res: Response) {
     const { body } = validate(registerUserSchema, { body: req?.body });
 
@@ -35,7 +34,6 @@ export class AuthController {
     });
   }
 
-  // FEATURE 2 - NOMOR 1: Login Customer dan EO
   static async login(req: Request, res: Response) {
     const { body } = validate(loginUserSchema, { body: req.body });
 
@@ -58,24 +56,6 @@ export class AuthController {
     });
   }
 
-  // FEATURE 2 - NOMOR 1: Logout dan menghapus cookie autentikasi
-  static async logout(req: Request, res: Response) {
-    // opsi harus sama dengan waktu cookie dibuat di login, kalau beda browser tidak menghapusnya
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      path: '/',
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Logged out successfully',
-      data: {},
-    });
-  }
-
-  // FEATURE 2 - NOMOR 1: Memeriksa sesi login Customer atau EO
   static async me(req: Request, res: Response) {
     const { payload } = res?.locals;
 
@@ -88,7 +68,6 @@ export class AuthController {
     });
   }
 
-  // FEATURE 2 - NOMOR 2: Mengubah password akun Customer atau EO
   static async setPassword(req: Request, res: Response) {
     const { body, params } = validate(setPasswordUserSchema, {
       body: req.body,
@@ -101,6 +80,26 @@ export class AuthController {
       success: true,
       message: 'Password updated successfully',
       data: safeUser,
+    });
+  }
+
+  // FEATURE 2 - NOMOR 2: Change Password Customer dan EO
+  static async changePassword(req: Request, res: Response) {
+    const { body } = validate(changePasswordUserSchema, {
+      body: req.body,
+    });
+
+    const { payload } = res.locals;
+
+    await AuthsService.changePassword({
+      userId: payload.id,
+      body,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+      data: {},
     });
   }
 }

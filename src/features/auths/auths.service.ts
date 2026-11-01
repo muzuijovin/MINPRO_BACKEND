@@ -1,10 +1,11 @@
 import { AppError } from '../../errors/app.error';
 import { randomBytes } from 'node:crypto';
-import { prisma } from '../../config/prisma-client.config';
+import { prisma } from '../../config/prisma-cllient.config';
 import { RegisterUserInput } from '../../validators/auths.validator';
 import type {
   LoginUserInput,
   SetPasswordUserInput,
+  ChangePasswordUserInput,
 } from '../../validators/auths.validator';
 import { Bcrypt } from '../../lib/bcrypt.lib';
 import { Jwt } from '../../lib/jwt.lib';
@@ -58,15 +59,12 @@ export class AuthsService {
       })
     );
 
-    // 4. Pisahkan password dan referral code input
-    const { password, referralCode: _inputReferralCode, ...userData } = body;
-
-    // 5. Buat akun dan proses reward dalam satu transaksi
+    // 4. Buat akun dan proses reward dalam satu transaksi
     const users = await prisma.$transaction(async (tx) => {
       // Kode create() kamu tetap digunakan di sini
       const newUser = await tx.users.create({
         data: {
-          ...userData,
+          ...body,
           role: 'CUSTOMER',
           password: passwordHashed,
           referralCode,
@@ -102,12 +100,7 @@ export class AuthsService {
     });
 
     // 8. Jangan kirim informasi sensitif dalam response
-    const {
-      id,
-      referredByUserId,
-      password: _password,
-      ...userWithoutPassword
-    } = users;
+    const { id, referredByUserId, password, ...userWithoutPassword } = users;
 
     return userWithoutPassword;
   }
@@ -144,22 +137,16 @@ export class AuthsService {
       })
     );
 
-    const { password, ...userData } = body;
     const users = await prisma.users.create({
       data: {
-        ...userData,
+        ...body,
         role: 'EO',
         password: passwordHashed,
         referralCode,
       },
     });
 
-    const {
-      id,
-      referredByUserId,
-      password: _password,
-      ...userWithoutPassword
-    } = users;
+    const { id, referredByUserId, password, ...userWithoutPassword } = users;
 
     return userWithoutPassword;
   }
@@ -236,5 +223,63 @@ export class AuthsService {
     const { password, ...safeUser } = user;
 
     return { safeUser };
+  }
+
+  // FEATURE 2 - NOMOR 2: Change Password Customer dan EO
+  static async changePassword({
+    userId,
+    body,
+  }: {
+    userId: string;
+    body: ChangePasswordUserInput['body'];
+  }) {
+    // 1. Cari user yang sedang login
+    const findUser = await prisma.users.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!findUser) {
+      throw new AppError(404, 'User not found');
+    }
+
+    // 2. Periksa apakah password lama benar
+    const isComparePassword = await Bcrypt.comparePassword(
+      body.oldPassword,
+      findUser.password,
+    );
+
+    if (!isComparePassword) {
+      throw new AppError(400, 'Current password is incorrect');
+    }
+
+    // 3. Pastikan password baru berbeda dari password lama
+    const isSamePassword = await Bcrypt.comparePassword(
+      body.newPassword,
+      findUser.password,
+    );
+
+    if (isSamePassword) {
+      throw new AppError(
+        400,
+        'New password must be different from current password',
+      );
+    }
+
+    // 4. Hash password baru
+    const passwordHashed = await Bcrypt.hashPassword(body.newPassword);
+
+    // 5. Simpan password baru ke database
+    await prisma.users.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        password: passwordHashed,
+      },
+    });
+
+    return;
   }
 }
