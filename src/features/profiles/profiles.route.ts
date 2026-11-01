@@ -37,3 +37,36 @@ ProfilesRoute.patch(
   uploadMiddleware(['jpg', 'jpeg', 'png'], 'MEMORY').single('avatar'),
   ProfilesController.updateCustomerAvatar,
 );
+
+// FEATURE 2 - NOMOR 2: Mengambil profil EO
+ProfilesRoute.get(
+  '/organizer',
+  authenticate,
+  authorize(['EO']),
+  ProfilesController.getOrganizerProfile,
+);
+
+// FEATURE 2 - NOMOR 2: Isi dan edit profil EO
+ProfilesRoute.put(
+  '/organizer',
+  authenticate,
+  authorize(['EO']),
+  ProfilesController.updateOrganizerProfile,
+);
+
+// FEATURE 2 - NOMOR 2: Edit sebagian profil EO
+ProfilesRoute.patch(
+  '/organizer',
+  authenticate,
+  authorize(['EO']),
+  ProfilesController.patchOrganizerProfile,
+);
+
+// FEATURE 2 - NOMOR 2: Upload dan edit logo profil EO
+ProfilesRoute.patch(
+  '/organizer/logo',
+  authenticate,
+  authorize(['EO']),
+  uploadMiddleware(['jpg', 'jpeg', 'png'], 'MEMORY').single('logo'),
+  ProfilesController.updateOrganizerLogo,
+);

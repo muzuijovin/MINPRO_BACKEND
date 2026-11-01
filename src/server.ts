@@ -16,7 +16,7 @@ import { AuthsRoute } from "./features/auths/auths.route";
 // Customer & EO Profile
 // ==========================================
 import { ProfilesRoute } from "./features/profiles/profiles.route";
-
+import { PointsRoute } from "./features/feature-2/points/points.route";
 import cookieParser from "cookie-parser";
 
 // ==========================================
@@ -51,6 +51,12 @@ app.use(`${API_PREFIX}/auth`, AuthsRoute);
 // Customer & EO Profile Routes
 // ==========================================
 app.use(`${API_PREFIX}/profiles`, ProfilesRoute);
+
+// ==========================================
+// GLENN - FEATURE 2 NOMOR 1
+// Referral Points & Expiration Routes
+// ==========================================
+app.use(`${API_PREFIX}/points`, PointsRoute);
 
 // ==========================================
 // JOVIN - FEATURE 1

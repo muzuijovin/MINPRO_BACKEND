@@ -26,3 +26,15 @@ AuthsRoute.patch(
   authorize(['CUSTOMER', 'EO']),
   AuthController.changePassword,
 );
+
+// FEATURE 2 - NOMOR 2: Forgot Password Customer dan EO
+AuthsRoute.post(
+  '/forgot-password',
+  AuthController.forgotPassword,
+);
+
+// FEATURE 2 - NOMOR 2: Reset Password Customer dan EO
+AuthsRoute.post(
+  '/reset-password',
+  AuthController.resetPassword,
+);

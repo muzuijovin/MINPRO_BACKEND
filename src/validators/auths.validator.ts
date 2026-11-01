@@ -30,16 +30,31 @@ export const loginUserSchema = z.object({
   }),
 });
 
-export const setPasswordUserSchema = z.object({
-  params: z.object({
-    userId: z.string().min(1, 'User ID is required field'),
+// FEATURE 2 - NOMOR 2: Forgot Password Customer dan EO
+export const forgotPasswordUserSchema = z.object({
+  body: z.object({
+    email: z.email('Please enter a valid email address'),
   }),
+});
+
+// FEATURE 2 - NOMOR 2: Reset Password Customer dan EO
+export const resetPasswordUserSchema = z.object({
   body: z
     .object({
-      password: z.string().min(8, 'Password must be at least 8 characters'),
-      confirmPassword: z.string().min(1, 'Confirm password is required field'),
+      token: z.string().min(1, 'Reset token is required'),
+      newPassword: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
+        .regex(/[a-z]/, 'Password must contain at least 1 lowercase letter')
+        .regex(/[0-9]/, 'Password must contain at least 1 number')
+        .regex(
+          /[^A-Za-z0-9]/,
+          'Password must contain at least 1 special character',
+        ),
+      confirmPassword: z.string().min(1, 'Confirm password is required'),
     })
-    .refine((data) => data.password === data.confirmPassword, {
+    .refine((data) => data.newPassword === data.confirmPassword, {
       message: 'Passwords do not match',
       path: ['confirmPassword'],
     }),
@@ -70,7 +85,6 @@ export const changePasswordUserSchema = z.object({
 
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;
 export type LoginUserInput = z.infer<typeof loginUserSchema>;
-export type SetPasswordUserInput = z.infer<typeof setPasswordUserSchema>;
-export type ChangePasswordUserInput = z.infer<
-  typeof changePasswordUserSchema
->;
+export type ForgotPasswordUserInput = z.infer<typeof forgotPasswordUserSchema>;
+export type ResetPasswordUserInput = z.infer<typeof resetPasswordUserSchema>;
+export type ChangePasswordUserInput = z.infer<typeof changePasswordUserSchema>;

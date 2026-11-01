@@ -22,11 +22,12 @@ enum UserRole {
 }
 
 model Users {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  email        String   @unique
-  password String
-  role         UserRole
+  id                  String                @id @default(uuid())
+  username            String                @unique
+  email               String                @unique
+  password            String
+  role                UserRole
+  passwordResetTokens PasswordResetTokens[]
 
   referralCode     String  @unique
   referredByUserId String?
@@ -55,16 +56,30 @@ model Users {
   @@map("users")
 }
 
+model PasswordResetTokens {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  users Users @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password-reset-tokens")
+}
 
 model CustomerProfiles {
   id     String @id @default(uuid())
   userId String @unique
   users  Users  @relation(fields: [userId], references: [id])
 
-  fullname     String   @db.VarChar(100)
-  phoneNumber  String  @db.VarChar(20)
-  avatarUrl    String   @db.VarChar(500)
-  dateOfBirth  DateTime?
+  fullname    String    @db.VarChar(100)
+  phoneNumber String    @db.VarChar(20)
+  avatarUrl   String    @db.VarChar(500)
+  dateOfBirth DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -79,14 +94,14 @@ model OrganizerProfiles {
   users  Users  @relation(fields: [userId], references: [id])
 
   // Biodata EO dan penanggung jawab
-  organizationName String  @db.VarChar(150)
-  fullName         String  @db.VarChar(100)
-  nik              String  @unique @db.VarChar(16)
-  nib              String  @unique @db.VarChar(13)
-  npwp             String? @unique @db.VarChar(25)
-  phoneNumber      String  @db.VarChar(20)
-  businessAddress  String  @db.VarChar(500)
-  logoUrl          String  @db.VarChar(500)
+  organizationName      String                  @db.VarChar(150)
+  fullName              String                  @db.VarChar(100)
+  nik                   String                  @unique @db.VarChar(16)
+  nib                   String                  @unique @db.VarChar(13)
+  npwp                  String?                 @unique @db.VarChar(25)
+  phoneNumber           String                  @db.VarChar(20)
+  businessAddress       String                  @db.VarChar(500)
+  logoUrl               String                  @db.VarChar(500)
   events                Events[]
   organizerBankAccounts OrganizerBankAccounts[]
 
@@ -97,17 +112,16 @@ model OrganizerProfiles {
   @@map("organizer-profiles")
 }
 
-
 // =====================================================
 // 2. CATEGORIES & EVENTS
 // =====================================================
 
 model Categories {
-  id String @id @default(uuid())
+  id       String  @id @default(uuid())
   parentId String?
 
   name String @db.VarChar(100)
-  slug String @db.VarChar(100) @unique
+  slug String @unique @db.VarChar(100)
 
   // relasi
   events Events[]
@@ -137,36 +151,35 @@ enum TypePrice {
 }
 
 model Events {
-  id String @id @default(uuid())
-  slug String @unique @db.VarChar(250)
+  id          String            @id @default(uuid())
+  slug        String            @unique @db.VarChar(250)
   organizerId String
-  organizer OrganizerProfiles @relation(fields: [organizerId], references: [id])
-  
+  organizer   OrganizerProfiles @relation(fields: [organizerId], references: [id])
+
   categoryId String
   categories Categories @relation(fields: [categoryId], references: [id])
 
-  title String @db.VarChar(200)
-  description String @db.VarChar(2000)
-  location String @db.VarChar(300)
-  format EventFormat
-  typePrice TypePrice
-  price Decimal @db.Decimal(15,2)
-  coverImageUrl String? @db.Text
+  title         String      @db.VarChar(200)
+  description   String      @db.VarChar(2000)
+  location      String      @db.VarChar(300)
+  format        EventFormat
+  typePrice     TypePrice
+  price         Decimal     @db.Decimal(15, 2)
+  coverImageUrl String?     @db.Text
 
-  quota Int
+  quota    Int
   startsAt DateTime?
-  endsAt DateTime?
+  endsAt   DateTime?
 
   // relasi
   eventVoucher EventVoucher[]
   transactions Transactions[]
-  reviews Reviews[]
+  reviews      Reviews[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  
   @@index([typePrice])
   @@index([format])
   @@index([location])
@@ -185,16 +198,16 @@ enum DiscountType {
 }
 
 model EventVoucher {
-  id String @id @default(uuid())
+  id      String @id @default(uuid())
   eventId String
-  events Events @relation(fields: [eventId],references: [id])
+  events  Events @relation(fields: [eventId], references: [id])
 
-  code String @db.VarChar(50)
-  discountPercentage Decimal @db.Decimal()
-  quota Int
-  startAt DateTime
-  endAt DateTime //menggantikan expiresAt
-  isActive Boolean 
+  code               String   @db.VarChar(50)
+  discountPercentage Decimal  @db.Decimal()
+  quota              Int
+  startAt            DateTime
+  endAt              DateTime //menggantikan expiresAt
+  isActive           Boolean
 
   // relasi
   transactions Transactions[]
@@ -213,27 +226,26 @@ model EventVoucher {
 // =====================================================
 
 model Coupons {
-  id String @id @default(uuid())
+  id     String @id @default(uuid())
   userId String
-  users Users @relation(fields: [userId], references: [id])
+  users  Users  @relation(fields: [userId], references: [id])
 
-  code String   @unique // Harus unik global agar tidak tertukar
+  code               String   @unique // Harus unik global agar tidak tertukar
   discountPercentage Decimal
-  quota Int      // Kuota pemakaian untuk user ini (misal: 1)
-  startAt DateTime
-  endAt DateTime // Menggantikan expiresAt
-  isActive Boolean  @default(true)
+  quota              Int // Kuota pemakaian untuk user ini (misal: 1)
+  startAt            DateTime
+  endAt              DateTime // Menggantikan expiresAt
+  isActive           Boolean  @default(true)
 
   // relasi
   transactions Transactions[]
-  
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@map("coupons")
 }
-
 
 // =====================================================
 // 5. REFERRAL POINTS
@@ -246,19 +258,19 @@ enum PointLotStatus {
   EXPIRED
 }
 
-model PointLots{
-  id String @id @default(uuid())
+model PointLots {
+  id     String @id @default(uuid())
   userId String @map("user_id")
-  user Users  @relation("UserPoints", fields: [userId], references: [id])
-  
-  referredUserId String?  // Pakai '?' karena di gambar Anda nilainya [null]
-  referredUser Users? @relation("ReferredUserPoints", fields: [referredUserId], references: [id])
+  user   Users  @relation("UserPoints", fields: [userId], references: [id])
+
+  referredUserId String? // Pakai '?' karena di gambar Anda nilainya [null]
+  referredUser   Users?  @relation("ReferredUserPoints", fields: [referredUserId], references: [id])
 
   pointsRemaining Int
-  status PointLotStatus @default(AVAILABLE)
+  status          PointLotStatus @default(AVAILABLE)
 
   creditedAt DateTime @default(now())
-  expiresAt DateTime
+  expiresAt  DateTime
 
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -272,14 +284,14 @@ model PointLots{
 // =====================================================
 
 model OrganizerBankAccounts {
-  id String @id @default(uuid())
+  id          String            @id @default(uuid())
   organizerId String
-  organizer OrganizerProfiles @relation(fields: [organizerId], references: [id])
+  organizer   OrganizerProfiles @relation(fields: [organizerId], references: [id])
 
-  bankName String @db.VarChar(50)
-  accountNumber String @db.VarChar(50)
-  accountHolder String @db.VarChar(100)
-  isActive Boolean @default(false)
+  bankName      String  @db.VarChar(50)
+  accountNumber String  @db.VarChar(50)
+  accountHolder String  @db.VarChar(100)
+  isActive      Boolean @default(false)
 
   // relasi
   transactions Transactions[]
@@ -305,48 +317,48 @@ enum TransactionStatus {
 }
 
 model Transactions {
-  id String @id @default(uuid())
+  id         String @id @default(uuid())
   customerId String
-  users Users @relation(fields: [customerId], references: [id])
+  users      Users  @relation(fields: [customerId], references: [id])
 
   bankAccountId String
-  bankEo OrganizerBankAccounts @relation(fields: [bankAccountId], references: [id])
+  bankEo        OrganizerBankAccounts @relation(fields: [bankAccountId], references: [id])
 
   eventId String
-  events Events @relation(fields: [eventId], references: [id])
+  events  Events @relation(fields: [eventId], references: [id])
 
   eventVoucherId String?
-  eventVoucher EventVoucher? @relation(fields: [eventVoucherId], references: [id])
+  eventVoucher   EventVoucher? @relation(fields: [eventVoucherId], references: [id])
 
   userCouponId String?
-  coupons Coupons? @relation(fields: [userCouponId], references: [id])
+  coupons      Coupons? @relation(fields: [userCouponId], references: [id])
 
   // --- KOLOM KUANTITAS & HARGA TIKET LANGSUNG DI SINI ---
-  quantity        Int     // Jumlah tiket yang dibeli user (misal: 3)
-  ticketPrice     Decimal @db.Decimal(15, 2) // Harga 1 tiket saat dibeli ( snapshot harga )
-  
-  transactionCode String @db.VarChar(50) @unique
-  subtotal Decimal @db.Decimal(15,2)
-  voucherDiscount Decimal @db.Decimal(15,2) @default(0)
-  couponDiscount Decimal @db.Decimal(15,2) @default(0)
-  pointUsed Int @default(0)
-  pointDiscount Decimal  @db.Decimal(15,2) @default(0)
-  finalAmount Decimal  @db.Decimal(15,2)
+  quantity    Int // Jumlah tiket yang dibeli user (misal: 3)
+  ticketPrice Decimal @db.Decimal(15, 2) // Harga 1 tiket saat dibeli ( snapshot harga )
+
+  transactionCode String  @unique @db.VarChar(50)
+  subtotal        Decimal @db.Decimal(15, 2)
+  voucherDiscount Decimal @default(0) @db.Decimal(15, 2)
+  couponDiscount  Decimal @default(0) @db.Decimal(15, 2)
+  pointUsed       Int     @default(0)
+  pointDiscount   Decimal @default(0) @db.Decimal(15, 2)
+  finalAmount     Decimal @db.Decimal(15, 2)
 
   status TransactionStatus @default(WAITING_FOR_PAYMENT)
 
   // Dibuat opsional (?) agar bisa bernilai null sebelum alur logistiknya tercapai
-  paymentDeadline DateTime?
+  paymentDeadline      DateTime?
   confirmationDeadline DateTime?
-  submittedProofAt DateTime?
-  confirmedAt DateTime?
-  rejectedAt DateTime?
-  expiredAt DateTime?
-  cancelledAt DateTime?
+  submittedProofAt     DateTime?
+  confirmedAt          DateTime?
+  rejectedAt           DateTime?
+  expiredAt            DateTime?
+  cancelledAt          DateTime?
 
   // relasi
   paymentProofs PaymentProofs[]
-  tickets Tickets[]
+  tickets       Tickets[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -366,15 +378,15 @@ enum PaymentProofDecision {
 }
 
 model PaymentProofs {
-  id String @id @default(uuid())
+  id            String       @id @default(uuid())
   transactionId String
-  transactions Transactions @relation(fields: [transactionId], references: [id])
+  transactions  Transactions @relation(fields: [transactionId], references: [id])
 
-  storagePath String @db.VarChar(500) //upload foto
-  uploadedAt DateTime @default(now())
-  
+  storagePath String   @db.VarChar(500) //upload foto
+  uploadedAt  DateTime @default(now())
+
   reviewedBy String
-  eo Users @relation(fields: [reviewedBy], references: [id])
+  eo         Users     @relation(fields: [reviewedBy], references: [id])
   reviewedAt DateTime?
 
   decision PaymentProofDecision @default(PENDING)
@@ -397,11 +409,11 @@ enum TicketStatus {
 }
 
 model Tickets {
-  id String @id @default(uuid())
+  id             String       @id @default(uuid())
   transactionsId String
-  Transactions Transactions @relation(fields: [transactionsId], references: [id])
-  status TicketStatus @default(VALID)
-  
+  Transactions   Transactions @relation(fields: [transactionsId], references: [id])
+  status         TicketStatus @default(VALID)
+
   issuedAt DateTime //diterbitkan pada
 
   updatedAt DateTime  @updatedAt
@@ -415,14 +427,14 @@ model Tickets {
 // =====================================================
 
 model Reviews {
-  id String @id @default(uuid())
+  id         String @id @default(uuid())
   customerId String
-  users Users @relation(fields: [customerId], references: [id])
+  users      Users  @relation(fields: [customerId], references: [id])
 
   eventId String
-  events Events @relation(fields: [eventId],references: [id])
+  events  Events @relation(fields: [eventId], references: [id])
 
-  rating Int
+  rating  Int
   comment String @db.VarChar(1000)
 
   createdAt DateTime  @default(now())
@@ -431,7 +443,3 @@ model Reviews {
 
   @@map("reviews")
 }
-
-
-
-
