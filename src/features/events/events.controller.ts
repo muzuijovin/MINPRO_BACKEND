@@ -18,7 +18,14 @@ export class EventsController {
 
     const { body } = validate(eventsCreateSchema, { body: req.body });
 
-    const createEvent = await EventsService.createEvent({ body }, files);
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const createEvent = await EventsService.createEvent(
+      { body },
+      files,
+      payload?.id,
+    );
 
     res.status(201).json({
       success: true,
@@ -71,7 +78,13 @@ export class EventsController {
   static async deleteEvents(req: Request, res: Response) {
     const { params } = validate(eventsDeletedSchema, { params: req?.params });
 
-    const { deletedEvents } = await EventsService.deleteEvent({ params });
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const { deletedEvents } = await EventsService.deleteEvent(
+      { params },
+      payload?.id,
+    );
 
     res.status(200).json({
       success: true,
@@ -87,7 +100,13 @@ export class EventsController {
       body: req?.body,
     });
 
-    const {updateEvents} = await EventsService.updatedEvents({ params, body });
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const { updateEvents } = await EventsService.updatedEvents(
+      { params, body },
+      payload?.id,
+    );
 
     res.status(200).json({
       success: true,
