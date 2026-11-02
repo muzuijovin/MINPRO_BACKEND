@@ -1,6 +1,6 @@
-import { prisma } from "../../config/prisma-cllient.config";
-import { Prisma } from "../../generated/prisma/client";
-import { CategoriesGetSchema } from "../../validatiors/categories.validators";
+import { prisma } from '../../config/prisma-client.config';
+import { Prisma } from '../../generated/prisma/client';
+import { CategoriesGetSchema } from '../../validatiors/categories.validators';
 
 export class CategoriesService {
   static async getCategory({ query }: CategoriesGetSchema) {
@@ -11,10 +11,10 @@ export class CategoriesService {
     };
 
     if (query?.search) {
-      where.name = { contains: query.search, mode: "insensitive" };
+      where.name = { contains: query.search, mode: 'insensitive' };
     }
 
-    if (query?.parentId === "root") where.parentId = null;
+    if (query?.parentId === 'root') where.parentId = null;
     else if (query?.parentId) where.parentId = query.parentId;
 
     const [categories, totalCategories] = await Promise.all([
@@ -31,7 +31,7 @@ export class CategoriesService {
           },
         },
         orderBy: {
-          name: "asc",
+          name: 'asc',
         },
       }),
       prisma.categories.count({ where }),
@@ -61,7 +61,7 @@ export class CategoriesService {
         parentId: true,
       },
       orderBy: {
-        name: "asc",
+        name: 'asc',
       },
     });
 

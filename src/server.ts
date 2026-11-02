@@ -1,26 +1,33 @@
+
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { corsOptions } from "./config/cors.config";
 import { errorMiddleware } from "./middleware/error.middleware";
-// glen
-import { AuthsRoute } from "./features/auths/auths.route";
-import cookieParser from 'cookie-parser';
 
-//
-// jovin
+// ==========================================
+// GLENN - FEATURE 2 NOMOR 1
+// Authentication & Access
+// ==========================================
+import { AuthsRoute } from "./features/auths/auths.route";
+
+// ==========================================
+// GLENN - FEATURE 2 NOMOR 2
+// Customer & EO Profile
+// ==========================================
+import { ProfilesRoute } from "./features/profiles/profiles.route";
+import { PointsRoute } from "./features/feature-2/points/points.route";
+import { OrganizerBankAccountsRoute } from "./features/organizer-bank-accounts/organizer-bank-accounts.route";
+import { OrganizerDashboardRoute } from "./features/organizer-dashboard/organizer-dashboard.route";
+import cookieParser from "cookie-parser";
+
+// ==========================================
+// JOVIN - FEATURE 1
+// Events, Categories & Event Vouchers
+// ==========================================
 import { EventsRoute } from "./features/events/events.route";
 import { CategoriesRoute } from "./features/categories/categories.route";
 import { VoucherRoute } from "./features/eventVoucher/voucher.route";
-import { BankAccountsRoute } from "./features/bankAccounts/bankAccounts.route";
-import { TransactionsRoute } from "./features/transactions/transactions.route";
-import { PaymentProofsRoute } from "./features/paymentProofs/paymentProofs.route";
-import { OrganizerStatisticsRoute } from "./features/organizerStatistics/organizerStatistics.route";
-import { ReviewsRoute } from "./features/reviews/reviews.route";
-import { NotificationsRoute } from "./features/notifications/notifications.route";
-import { startTransactionsJob } from "./jobs/transactions.job";
-
-//
 
 const PORT: number = parseInt(process.env.PORT!);
 const API_PREFIX: string = process.env.API_PREFIX!;
@@ -32,27 +39,45 @@ app.use(cors(corsOptions));
 // Parse JSON request body
 app.use(express.json());
 
+// Parse cookies for JWT authentication
 app.use(cookieParser());
 
-// Authentication routes
+// ==========================================
+// GLENN - FEATURE 2 NOMOR 1
+// Authentication & Access Routes
+// ==========================================
 app.use(`${API_PREFIX}/auth`, AuthsRoute);
 
+// ==========================================
+// GLENN - FEATURE 2 NOMOR 2
+// Customer & EO Profile Routes
+// ==========================================
+app.use(`${API_PREFIX}/profiles`, ProfilesRoute);
 
-//
-// jovin
+// FEATURE 2 - NOMOR 2: Organizer Bank Accounts
+app.use(`${API_PREFIX}/organizer-bank-accounts`, OrganizerBankAccountsRoute);
+
+// FEATURE 2 - NOMOR 3: Organizer Dashboard
+app.use(`${API_PREFIX}/organizer-dashboard`, OrganizerDashboardRoute);
+
+// ==========================================
+// GLENN - FEATURE 2 NOMOR 1
+// Referral Points & Expiration Routes
+// ==========================================
+app.use(`${API_PREFIX}/points`, PointsRoute);
+
+// ==========================================
+// JOVIN - FEATURE 1
+// Events, Categories & Event Voucher Routes
+// ==========================================
 app.use(`${API_PREFIX}/events`, EventsRoute);
-app.use(`${API_PREFIX}/categories`, CategoriesRoute)
-app.use(`${API_PREFIX}/vouchers`, VoucherRoute)
-app.use(`${API_PREFIX}/transactions`, TransactionsRoute)
-app.use(`${API_PREFIX}/bank-accounts`, BankAccountsRoute)
-app.use(`${API_PREFIX}/payment-proofs`, PaymentProofsRoute)
-app.use(`${API_PREFIX}/organizer/statistics`, OrganizerStatisticsRoute)
-app.use(`${API_PREFIX}/reviews`, ReviewsRoute)
-app.use(`${API_PREFIX}/notifications`, NotificationsRoute)
+app.use(`${API_PREFIX}/categories`, CategoriesRoute);
+app.use(`${API_PREFIX}/vouchers`, VoucherRoute);
 
-
-//
-//menangani error middleware (wajib dipasang SETELAH semua route, kalau sebelum route error tidak akan ketangkep)
+// ==========================================
+// GLOBAL ERROR HANDLING
+// Wajib dipasang setelah semua routes
+// ==========================================
 app.use(errorMiddleware);
 
 // Start server only in development
@@ -60,9 +85,6 @@ if (process.env.NODE_ENV === "development") {
   app.listen(PORT, () => {
     console.log(`Application Running On Port ${PORT}`);
   });
-
-  // auto-expire & auto-cancel transaksi tiap menit (production pakai POST /transactions/jobs/expire)
-  startTransactionsJob();
 }
 
 export default app;

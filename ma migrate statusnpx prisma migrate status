@@ -1,0 +1,75 @@
+[33mcommit bb7b9ffd1259bcb09cd6dd0d76c64341ad0e8d80[m[33m ([m[1;36mHEAD -> [m[1;32mfeat-feature-2-profiles[m[33m)[m
+Author: glennfwrumbekwan <glennfwrumbekwan@gmail.com>
+Date:   Wed Oct 28 14:20:15 2026 +0700
+
+    perubahan sementara
+
+A	prisma/migrations/20261028042119_y/migration.sql
+A	prisma/migrations/20261028043949_require_organizer_nib_and_logo/migration.sql
+A	prisma/migrations/20261028044439_deleted/migration.sql
+
+[33mcommit b648ee655b46c709ea4b19676a1552ae76102c29[m[33m ([m[1;32mfeat/feature-2-auth[m[33m)[m
+Author: glennfwrumbekwan <glennfwrumbekwan@gmail.com>
+Date:   Sun Oct 25 01:05:41 2026 +0700
+
+    sementara fix aja dulu
+
+D	prisma/migrations/20261024160000_add_email_verifications/migration.sql
+
+[33mcommit 48a875069d166297e9a418510a4b1f8c9776dfc6[m
+Author: jovin <jovin.najwan@gmail.com>
+Date:   Sat Oct 24 19:40:36 2026 +0700
+
+    fix: rename password in schema
+
+A	prisma/migrations/20261024123943_rename_password/migration.sql
+
+[33mcommit ed0c86ffcda65a3f3ead1fbb34fd90ef95dfe66e[m[33m ([m[1;31morigin/feat/feature-2-auth[m[33m)[m
+Author: glennfwrumbekwan <glennfwrumbekwan@gmail.com>
+Date:   Sat Oct 24 19:04:42 2026 +0700
+
+    complete to feat/feature-2-auth
+
+A	prisma/migrations/20261024160000_add_email_verifications/migration.sql
+
+[33mcommit bb89fb4c772ad26bf55ab57b7c0c6d5daaeb7fd2[m
+Author: Jovin Najwan <jovin.najwan@gmail.com>
+Date:   Sun Oct 18 02:31:53 2026 +0700
+
+    fixbug: wrong endsAts name  in event
+
+A	prisma/migrations/20261017193002_fix_ends_at_name_in_events/migration.sql
+
+[33mcommit f54c5fcf87a39b36320308f1fa0c2a61112cd3bd[m
+Author: Jovin Najwan <jovin.najwan@gmail.com>
+Date:   Sun Oct 18 02:22:04 2026 +0700
+
+    feat: initiate crud feature events
+
+A	prisma/migrations/20261017134854_add_coverimage_colomn_in_events/migration.sql
+A	prisma/migrations/20261017185432_fix_to_starts_at_in_events_table/migration.sql
+
+[33mcommit 3fc7049b75e2e4816b02b11b93e2c12c13d9cbc2[m
+Author: Jovin Najwan <jovin.najwan@gmail.com>
+Date:   Thu Oct 15 13:23:41 2026 +0700
+
+    chore: setup Centralized Error, uploaders and add colomn slug in events table
+
+A	prisma/migrations/20261015062213_add_slug_in_events/migration.sql
+
+[33mcommit 0ee60d662ede8eee3690b4d9c30a27ed71ead012[m
+Author: Jovin Najwan <jovin.najwan@gmail.com>
+Date:   Thu Oct 15 09:11:46 2026 +0700
+
+    chore: initiate table
+
+A	prisma/migrations/20261014170915_init/migration.sql
+
+[33mcommit f426ae6def17e839b96eab6754ba101e228ef570[m
+Author: Jovin Najwan <jovin.najwan@gmail.com>
+Date:   Wed Oct 14 11:20:31 2026 +0700
+
+    chore: init basic schema prisma
+
+A	prisma/migrations/20261014040947_init/migration.sql
+A	prisma/migrations/migration_lock.toml

@@ -36,7 +36,7 @@ export const uploadMiddleware = (
     cb: FileFilterCallback,
   ) {
     // toLowerCase supaya "foto.JPG" / "foto.PNG" tetap diterima (sama seperti validasi di FE)
-    const fileExtension = file?.originalname?.split(".").pop();
+    const fileExtension = file?.originalname?.split(".").pop()?.toLowerCase();
 
     // jika extention yang diberikan di route ternyata tidak sama dengan orang yang ngepost. itu throw ke error
     if (!allowedFileExtensions.includes(fileExtension!)) {
@@ -48,6 +48,7 @@ export const uploadMiddleware = (
   return multer({
     storage: storage,
     fileFilter,
-    limits: { fileSize: 1024 * 1024 * 10 }, //10mb
+    limits: { fileSize: 1024 * 1024 * 5 }, //5mb
   });
 };
+

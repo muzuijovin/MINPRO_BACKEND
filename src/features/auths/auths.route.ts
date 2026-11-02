@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AuthController } from './auths.controller';
-import { authenticate } from '../../middleware/auths.middleware';
+import { authenticate, authorize } from '../../middleware/auths.middleware';
+
 
 export const AuthsRoute = Router();
 
@@ -18,31 +19,22 @@ AuthsRoute.post('/login', AuthController.login);
 
 AuthsRoute.get('/me', authenticate, AuthController.me);
 
-// tanpa authenticate: token yang sudah expired juga tetap bisa dihapus
-AuthsRoute.post('/logout', AuthController.logout);
+// FEATURE 2 - NOMOR 2: Change Password Customer dan EO
+AuthsRoute.patch(
+  '/change-password',
+  authenticate,
+  authorize(['CUSTOMER', 'EO']),
+  AuthController.changePassword,
+);
 
-// AuthsRoute.get(
-//   '/test-customer',
-//   authenticate,
-//   authorize(['CUSTOMER']),
-//   (req, res) => {
-//     res.status(200).json({
-//       success: true,
-//       message: 'Customer access granted',
-//       data: {},
-//     });
-//   },
-// );
+// FEATURE 2 - NOMOR 2: Forgot Password Customer dan EO
+AuthsRoute.post(
+  '/forgot-password',
+  AuthController.forgotPassword,
+);
 
-// AuthsRoute.get(
-//   '/test-eo',
-//   authenticate,
-//   authorize(['EO']),
-//   (req, res) => {
-//     res.status(200).json({
-//       success: true,
-//       message: 'EO access granted',
-//       data: {},
-//     });
-//   },
-// );
+// FEATURE 2 - NOMOR 2: Reset Password Customer dan EO
+AuthsRoute.post(
+  '/reset-password',
+  AuthController.resetPassword,
+);
