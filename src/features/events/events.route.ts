@@ -19,6 +19,9 @@ EventsRoute.post(
 EventsRoute.get('/', EventsController.getEvents)
 // '/locations' harus di atas '/:slug', kalau tidak "locations" kebaca sebagai slug
 EventsRoute.get('/locations', EventsController.getEventLocations)
+// event milik EO yang login (halaman Event Saya), juga harus di atas '/:slug'
+EventsRoute.get('/organizer/me', authenticate, authorize(["EO"]), EventsController.getOrganizerEvents)
+EventsRoute.get('/organizer/me/:id', authenticate, authorize(["EO"]), EventsController.getOrganizerEventDetail)
 EventsRoute.get('/:slug', EventsController.getEventDetail)
 // update & delete juga cuma boleh EO, kepemilikan event nya dicek di service
 EventsRoute.delete('/:id', authenticate, authorize(["EO"]), EventsController.deleteEvents)

@@ -116,6 +116,22 @@ export const eventsGetSchema = z.object({
   }),
 });
 
+// list event milik EO yang login (halaman Event Saya), organizer nya diambil dari token
+export const eventsOrganizerGetSchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().min(1).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+    search: z.string().trim().optional(),
+    time: z.enum(["upcoming", "past", "all"]).optional().default("all"),
+  }),
+});
+
+export const eventsOrganizerGetDetailSchema = z.object({
+  params: z.object({
+    id,
+  }),
+});
+
 export const eventsGetDetailSchema = z.object({
   params: z.object({
     slug,
@@ -155,6 +171,10 @@ export type EventsCreateSchema = z.infer<typeof eventsCreateSchema>;
 export type EventsGetSchema = z.infer<typeof eventsGetSchema>
 
 export type EventsGetDetailSchema = z.infer<typeof eventsGetDetailSchema>
+
+export type EventsOrganizerGetSchema = z.infer<typeof eventsOrganizerGetSchema>
+
+export type EventsOrganizerGetDetailSchema = z.infer<typeof eventsOrganizerGetDetailSchema>
 
 export type EventsDeletedSchema = z.infer<typeof eventsDeletedSchema>
 
