@@ -17,6 +17,8 @@ AuthsRoute.post(
 
 AuthsRoute.post('/login', AuthController.login);
 
+AuthsRoute.post('/logout', AuthController.logout);
+
 AuthsRoute.get('/me', authenticate, AuthController.me);
 
 // FEATURE 2 - NOMOR 2: Change Password Customer dan EO
