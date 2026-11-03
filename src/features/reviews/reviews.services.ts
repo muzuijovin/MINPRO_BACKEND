@@ -1,4 +1,4 @@
-import { prisma } from "../../config/prisma-cllient.config";
+import { prisma } from "../../config/prisma-client.config";
 import { AppError } from "../../errors/app.error";
 import { Prisma } from "../../generated/prisma/client";
 import { ReviewsCreateSchema, ReviewsGetSchema } from "../../validatiors/reviews.validator";
