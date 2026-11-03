@@ -7,6 +7,8 @@ import {
   EventsDeletedSchema,
   EventsGetDetailSchema,
   EventsGetSchema,
+  EventsOrganizerGetDetailSchema,
+  EventsOrganizerGetSchema,
   EventUpdatedSchema,
 } from '../../validatiors/events.validators';
 import { generateSlug } from '../../utlis/slug';
@@ -154,6 +156,68 @@ export class EventsService {
     };
   }
 
+  // include yang sama untuk list & detail event milik EO: category (+ parent untuk form edit) & voucher
+  static organizerEventInclude = {
+    categories: {
+      select: { id: true, name: true, slug: true, parentId: true },
+    },
+    eventVoucher: {
+      where: { deletedAt: null },
+      orderBy: { startAt: "asc" },
+    },
+  } satisfies Prisma.EventsInclude;
+
+  static async getOrganizerEvents({ query }: EventsOrganizerGetSchema, userId: string) {
+    const offset = (query?.page - 1) * query?.limit;
+    const now = new Date();
+
+    // event milik EO yang login saja (organizer dicari lewat userId dari token)
+    const where: Prisma.EventsWhereInput = {
+      deletedAt: null,
+      organizer: { userId },
+    };
+
+    if (query?.search) where.title = { contains: query.search, mode: "insensitive" };
+
+    if (query?.time === "upcoming") where.startsAt = { gte: now };
+    if (query?.time === "past") where.startsAt = { lt: now };
+
+    const [events, totalEvents] = await Promise.all([
+      prisma.events.findMany({
+        where,
+        take: query?.limit,
+        skip: offset,
+        include: this.organizerEventInclude,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.events.count({ where }),
+    ]);
+
+    return {
+      page: query?.page,
+      totalPage: Math.ceil(totalEvents / query.limit),
+      limit: query?.limit,
+      events,
+      totalEvents,
+    };
+  }
+
+  // detail event by id untuk form edit, cuma bisa dibuka pemilik event nya
+  static async getOrganizerEventDetail({ params }: EventsOrganizerGetDetailSchema, userId: string) {
+    const event = await prisma.events.findFirst({
+      where: {
+        id: params?.id,
+        deletedAt: null,
+        organizer: { userId },
+      },
+      include: this.organizerEventInclude,
+    });
+
+    if (!event) throw new AppError(404, "event not found");
+
+    return event;
+  }
+
   static async getEventDetail({ params }: EventsGetDetailSchema) {
     const now = new Date();
 
@@ -293,6 +357,11 @@ export class EventsService {
     // EO cuma boleh ubah event miliknya sendiri (userId dari token)
     if (findEventsById.organizer.userId !== userId)
       throw new AppError(403, `You are not the organizer of this event`);
+
+    // event yang sudah selesai (lewat endsAt, kalau kosong pakai startsAt) tidak bisa diedit lagi
+    const eventFinishedAt = findEventsById.endsAt ?? findEventsById.startsAt;
+    if (eventFinishedAt && eventFinishedAt < new Date())
+      throw new AppError(400, "Finished events can no longer be edited");
 
     // kalau categoryId diganti, pastikan category nya ada
     if (body?.categoryId) {

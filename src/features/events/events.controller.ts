@@ -4,6 +4,8 @@ import {
   eventsDeletedSchema,
   eventsGetDetailSchema,
   eventsGetSchema,
+  eventsOrganizerGetDetailSchema,
+  eventsOrganizerGetSchema,
   eventUpdatedSchema,
 } from "../../validatiors/events.validators";
 import { EventsService } from "./events.service";
@@ -72,6 +74,37 @@ export class EventsController {
       success: true,
       message: "event locations get successfully",
       data: locations,
+    });
+  }
+
+  static async getOrganizerEvents(req: Request, res: Response) {
+    const { query } = validate(eventsOrganizerGetSchema, { query: req?.query });
+
+    // id user yang login, diisi authenticate middleware dari token
+    const { payload } = res.locals;
+
+    const { page, totalPage, limit, events, totalEvents } =
+      await EventsService.getOrganizerEvents({ query }, payload?.id);
+
+    res.status(200).json({
+      success: true,
+      message: "organizer events get successfully",
+      data: events,
+      meta: { page, totalPage, limit, totalEvents },
+    });
+  }
+
+  static async getOrganizerEventDetail(req: Request, res: Response) {
+    const { params } = validate(eventsOrganizerGetDetailSchema, { params: req?.params });
+
+    const { payload } = res.locals;
+
+    const event = await EventsService.getOrganizerEventDetail({ params }, payload?.id);
+
+    res.status(200).json({
+      success: true,
+      message: "organizer event detail get successfully",
+      data: event,
     });
   }
 
